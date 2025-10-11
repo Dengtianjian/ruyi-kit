@@ -1,6 +1,6 @@
 {
   "name": "@ruyi-kit/core",
-  "version": null,
+  "version":"1.0.0",
   "description": "RUYI 前端库 核心 模块",
   "type": "module",
   "publishConfig": {
