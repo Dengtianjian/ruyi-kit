@@ -1,6 +1,6 @@
 {
   "name": "@ruyi-kit/nuxt",
-  "version": "1.0.4",
+  "version": "1.0.5",
   "description": "RUYI 前端库 Nuxt 模块",
   "type": "module",
   "publishConfig": {

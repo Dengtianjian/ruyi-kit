@@ -1,6 +1,6 @@
 {
   "name": "@ruyi-kit/vue",
-  "version": "1.0.3",
+  "version": "1.0.5",
   "description": "RUYI 前端库 Vue 模块",
   "type": "module",
   "publishConfig": {

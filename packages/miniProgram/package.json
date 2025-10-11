@@ -1,6 +1,6 @@
 {
   "name": "@ruyi-kit/wechat_miniprogram",
-  "version": "1.0.3",
+  "version": "1.0.5",
   "description": "RUYI 前端库 微信小程序 模块",
   "type": "module",
   "publishConfig": {
