@@ -1,6 +1,6 @@
 {
   "name": "@ruyi-kit/javascript",
-  "version":"1.0.0",
+  "version": "1.0.1",
   "description": "RUYI 前端库 JavaScript 模块",
   "type": "module",
   "publishConfig": {
