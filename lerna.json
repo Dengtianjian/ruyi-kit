@@ -4,5 +4,11 @@
   "packages": [
     "packages/*"
   ],
-  "npmClient": "pnpm"
+  "npmClient": "pnpm",
+  "command": {
+    "publish": {
+      "access": "public",
+      "registry": "https://registry.npmjs.org/"
+    }
+  }
 }

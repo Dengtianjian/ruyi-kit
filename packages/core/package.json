@@ -1,6 +1,6 @@
 {
   "name": "@ruyi/core",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "RUYI 前端库 核心 模块",
   "type": "module",
   "scripts": {},
@@ -9,5 +9,5 @@
   "devDependencies": {
     "dayjs": "^1.11.10"
   },
-  "gitHead": "ef09a836f4ea876fb4622e814a0bc00943f828d9"
+  "gitHead": "ac73a52328d973ef734299d77cd8c42e25df7c18"
 }
