@@ -1,13 +1,14 @@
 {
-  "name": "ruyijs",
+  "name": "ruyi-frontend",
   "version": "1.0.2",
   "description": "",
+  "type": "module",
   "scripts": {
-    "publish": "echo \"Error: no test specified\" && exit 1"
+    "publish": "lerna publish"
   },
   "author": "",
   "license": "ISC",
-  "devDependencies": {
-    "dayjs": "^1.11.10"
+  "dependencies": {
+    "lerna": "^9.0.0"
   }
 }

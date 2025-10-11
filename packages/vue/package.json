@@ -1,0 +1,12 @@
+{
+  "name": "@ruyi/vue",
+  "version": "1.0.0",
+  "description": "RUYI 前端库 Vue 模块",
+  "type": "module",
+  "scripts": {},
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "dayjs": "^1.11.10"
+  }
+}
