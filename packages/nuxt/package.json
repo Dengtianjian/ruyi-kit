@@ -3,9 +3,23 @@
   "version": "1.0.0",
   "description": "RUYI 前端库 Nuxt 模块",
   "type": "module",
-  "scripts": {},
-  "author": "",
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org/"
+  },
+  "author": "dengtianjian",
   "license": "ISC",
+  "publisher": "dengtianjian",
+  "homepage": "https://docs.osoooo.com",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Dengtianjian/ruyi-kit.git",
+    "directory": "packages/javaScript"
+  },
+  "bugs": {
+    "url": "https://github.com/Dengtianjian/ruyi-kit/issues"
+  },
+  "scripts": {},
   "devDependencies": {
     "dayjs": "^1.11.10"
   }

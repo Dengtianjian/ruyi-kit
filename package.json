@@ -1,7 +1,7 @@
 {
-  "name": "ruyi-frontend",
-  "version": "1.0.2",
-  "description": "",
+  "name": "ruyi-kit",
+  "version": "1.0.0",
+  "description": "RUYI 工具库",
   "type": "module",
   "scripts": {
     "publish": "lerna publish"
