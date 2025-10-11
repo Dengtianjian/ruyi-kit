@@ -1,6 +1,6 @@
 {
   "name": "@ruyi/core",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "RUYI 前端库 核心 模块",
   "type": "module",
   "scripts": {},
@@ -8,5 +8,6 @@
   "license": "ISC",
   "devDependencies": {
     "dayjs": "^1.11.10"
-  }
+  },
+  "gitHead": "ef09a836f4ea876fb4622e814a0bc00943f828d9"
 }

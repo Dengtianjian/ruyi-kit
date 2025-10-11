@@ -1,11 +1,12 @@
 0 silly argv {
 0 silly argv   _: [ 'publish' ],
+0 silly argv   private: false,
 0 silly argv   composed: 'publish',
 0 silly argv   lernaVersion: '9.0.0',
-0 silly argv   '$0': '/Users/tianjian/Workspace/Projects/ruyi-frontend/node_modules/.bin/lerna'
+0 silly argv   '$0': 'lerna'
 0 silly argv }
 1 notice cli v9.0.0
-2 verbose packageConfigs Explicit "packages" configuration found in lerna.json. Resolving packages using the configured glob(s): ["packages/*"]
+2 verbose packageConfigs Explicit "packages" configuration found in lerna.json. Resolving packages using the configured glob(s): ["packages/core"]
 3 verbose rootPath /Users/tianjian/Workspace/Projects/ruyi-frontend
 4 error Error: Permission denied (os error 13)
 4 error     at createProjectGraphAndSourceMapsAsync (/Users/tianjian/Workspace/Projects/ruyi-frontend/node_modules/nx/src/project-graph/project-graph.js:229:15)
