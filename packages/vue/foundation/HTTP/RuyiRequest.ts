@@ -1,5 +1,5 @@
-import { IResponse, TBody, THTTPMiddleware } from ".";
-import HTTP, { TMethods } from ".";
+import type { IResponse, TBody, THTTPMiddleware } from ".";
+import HTTP, { type TMethods } from ".";
 import Request from "./request";
 
 export default class RuyiRequest extends Request {

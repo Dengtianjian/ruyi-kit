@@ -1,4 +1,4 @@
-import { UnwrapNestedRefs, reactive, ref, toRaw } from "vue"
+import { reactive, ref, toRaw, type UnwrapNestedRefs } from "vue"
 
 export interface ISettingsApi {
   items<T>(...names: string[]): Promise<T>;

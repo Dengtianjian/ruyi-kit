@@ -1,5 +1,5 @@
-import { AllowedComponentProps, ComponentCustomProps, VNodeProps, VNode, RendererNode, RendererElement, VNodeChild } from "vue";
-import { RouterLinkProps } from "vue-router";
+import type { AllowedComponentProps, ComponentCustomProps, VNodeProps, VNode, RendererNode, RendererElement, VNodeChild } from "vue";
+import type { RouterLinkProps } from "vue-router";
 
 export type RTMenuOption<Meta = {}> = {
   link?: string | AllowedComponentProps & ComponentCustomProps & VNodeProps & RouterLinkProps,

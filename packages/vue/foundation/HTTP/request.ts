@@ -1,5 +1,6 @@
-import { TBody, THTTPMiddleware } from "./";
-import HTTP, { TMethods } from ".";
+import { ref, type Ref } from "vue";
+import type { TBody, THTTPMiddleware } from "./";
+import HTTP, { type TMethods } from ".";
 
 export default class Request extends HTTP {
   /**
@@ -22,6 +23,7 @@ export default class Request extends HTTP {
    * @returns Promise
    */
   send<ResponseData>(uri: string | number | (string | number)[] = null, method: TMethods = null): Promise<ResponseData> {
+    console.log("send1");
     return super.send<ResponseData>(uri, method).then(res => {
       return res.data;
     });

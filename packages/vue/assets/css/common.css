@@ -5,3 +5,56 @@
   --r-panel-background-color: #fff;
   --r-panel-border-radius: var(--r-border-radius);
 }
+
+/* 超出省略号 */
+.ellipsis1 {
+  display: -webkit-box;
+  text-overflow: ellipsis;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  -webkit-line-clamp: 1;
+  line-clamp: 1;
+  word-break: break-word;
+}
+
+.ellipsis2 {
+  display: -webkit-box;
+  text-overflow: ellipsis;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+}
+
+.ellipsis3 {
+  display: -webkit-box;
+  text-overflow: ellipsis;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  -webkit-line-clamp: 3;
+  line-clamp: 3;
+}
+
+.ellipsis4 {
+  display: -webkit-box;
+  text-overflow: ellipsis;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  -webkit-line-clamp: 4;
+  line-clamp: 4;
+}
+
+/* 滚动条 */
+/* 细滚动条 */
+.scrollbar-thin::-webkit-scrollbar {
+  width: 4px;
+  background-color: none;
+}
+
+.scrollbar-thin::-webkit-scrollbar-thumb {
+  background-color: #eee;
+}
+
+.scrollbar-thin:hover::-webkit-scrollbar-thumb {
+  background-color: #ddd;
+}

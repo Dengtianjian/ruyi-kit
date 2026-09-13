@@ -19,3 +19,4 @@ export { default as SettingFormService } from "./services/SettingFormService";
 
 export * from "./types/common";
 export * from "./types/components/Common";
+export * from "./types/components/NaiveUI";

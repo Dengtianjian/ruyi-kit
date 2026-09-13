@@ -1,4 +1,4 @@
-import { UnwrapNestedRefs, reactive, ref } from "vue"
+import { reactive, ref, type UnwrapNestedRefs } from "vue"
 import { DiscuzXSettingsApi } from "../../api/discuzX/common/DiscuzXSettingsApi";
 import SettingFormService from "../SettingFormService";
 

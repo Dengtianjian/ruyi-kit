@@ -1,8 +1,8 @@
-import { RouteRecordName } from "vue-router";
+import type { RouteRecordName } from "vue-router";
 import NaiveUI from "../foundation/naiveUI";
-import { RTMenuOption } from "../types/components/Common";
-import { TRuyiRouteRecordRaw } from "../types/declare/vue-router";
-import { VNodeChild } from "vue";
+import type { RTMenuOption } from "../types/components/Common";
+import type { TRuyiRouteRecordRaw } from "../types/declare/vue-router";
+import type { VNode, VNodeChild } from "vue";
 
 export type TRuyiRouteMetaNaiveUIMenu<T extends Object = {}> = {
   index?: number,
@@ -54,60 +54,65 @@ export function generateRouterMenuOptions<RouteMeta extends Object = {
 
   const MenuRoutes: Array<RTMenuOption<RouteMeta>> = [];
   Routes.forEach(RouteItem => {
-    if (level === false || level && RouteItem.meta?.menu?.level) {
-      if (level === false || (Array.isArray(level) && level.includes(RouteItem.meta.menu.level)) || level === RouteItem.meta.menu.level) {
-        if (RouteItem.meta?.menu) {
-          const Options = {
+    // 菜单元信息统一写在 meta.naiveUIRouteMenu（兼容历史的 meta.menu）；
+    // vue-router 的 RouteMeta 带有索引签名，这里收敛成 kit 约定的菜单元信息类型
+    const MenuMeta = (RouteItem.meta?.naiveUIRouteMenu ?? RouteItem.meta?.menu) as TRuyiRouteMetaNaiveUIMenu | undefined;
+    const RouteMenu: TRuyiRouteMetaNaiveUIMenu = MenuMeta ?? {};
+
+    if (level === false || level && RouteMenu.level) {
+      if (level === false || (Array.isArray(level) && level.includes(RouteMenu.level)) || level === RouteMenu.level) {
+        if (MenuMeta) {
+          const Options: RTMenuOption<RouteMeta> = {
             key: RouteItem.name.toString(),
             childrenNames: getChildrenRouteNames(RouteItem.children ?? []),
-            index: RouteItem.meta.menu?.index ?? MenuRoutes.length + 1,
+            index: RouteMenu.index ?? MenuRoutes.length + 1,
             meta: RouteItem.meta
           }
 
-          if (RouteItem.meta.menu.disabled !== undefined) {
-            Options['disabled'] = RouteItem.meta.menu.disabled;
+          if (RouteMenu.disabled !== undefined) {
+            Options['disabled'] = RouteMenu.disabled;
           }
-          if (RouteItem.meta.menu.show !== undefined) {
-            Options['show'] = RouteItem.meta.menu.show;
+          if (RouteMenu.show !== undefined) {
+            Options['show'] = RouteMenu.show;
           }
-          if (RouteItem.meta.menu.extra !== undefined) {
-            Options['extra'] = RouteItem.meta.menu.extra;
+          if (RouteMenu.extra !== undefined) {
+            Options['extra'] = RouteMenu.extra;
           }
-          if (RouteItem.meta.menu.icon !== undefined) {
-            Options['icon'] = RouteItem.meta.menu.icon;
+          if (RouteMenu.icon !== undefined) {
+            Options['icon'] = RouteMenu.icon;
           }
-          if (RouteItem.meta.menu.type) {
-            Options['label'] = RouteItem.meta.menu.label?.toString() ?? RouteItem.meta.title;
-            if (RouteItem.meta.menu.type === "group") {
-              Options['type'] = RouteItem.meta.menu.type;
+          if (RouteMenu.type) {
+            Options['label'] = RouteMenu.label?.toString() ?? RouteItem.meta.title;
+            if (RouteMenu.type === "group") {
+              Options['type'] = RouteMenu.type;
               if (RouteItem.children) {
-                Options['children'] = generateRouterMenuOptions(RouteItem.children);
+                Options['children'] = generateRouterMenuOptions<RouteMeta>(RouteItem.children);
               } else {
                 Options['children'] = [];
               }
-            } else if (RouteItem.meta.menu.type === "list") {
+            } else if (RouteMenu.type === "list") {
               if (RouteItem.children) {
-                Options['children'] = generateRouterMenuOptions(RouteItem.children);
+                Options['children'] = generateRouterMenuOptions<RouteMeta>(RouteItem.children);
               }
             }
           } else {
             // @ts-ignore
-            Options['label'] = NaiveUI.createdRouterLinkLabel(RouteItem.meta.menu.label?.toString() ?? RouteItem.meta.title, {
+            Options['label'] = NaiveUI.createdRouterLinkLabel(RouteMenu.label?.toString() ?? RouteItem.meta.title, {
               to: {
                 name: RouteItem.name
               }
             });
           }
-          if (RouteItem.meta.menu.level !== undefined) {
-            Options['level'] = RouteItem.meta.menu.level;
+          if (RouteMenu.level !== undefined) {
+            Options['level'] = RouteMenu.level;
           }
 
           MenuRoutes.push(Options);
         }
       }
     }
-    if (RouteItem.children && !RouteItem.meta?.menu?.type) {
-      MenuRoutes.push(...generateRouterMenuOptions(RouteItem.children, level));
+    if (RouteItem.children && !RouteMenu.type) {
+      MenuRoutes.push(...generateRouterMenuOptions<RouteMeta>(RouteItem.children, level));
     }
   });
   MenuRoutes.sort((a, b) => {

@@ -1,4 +1,4 @@
-import { TBody, THTTPMiddleware, TMethods } from ".";
+import type { TBody, THTTPMiddleware, TMethods } from ".";
 import RuyiRequest from "./RuyiRequest";
 
 export default class extends RuyiRequest {

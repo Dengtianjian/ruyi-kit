@@ -299,7 +299,7 @@ export default class HTTP {
           text: await res.text()
         }
       }).then(async ({ response, text }) => {
-        const header = {};
+        const header: Record<string, string> = {};
         response.headers.forEach((val, key) => {
           //@ts-ignore
           header[key] = val;

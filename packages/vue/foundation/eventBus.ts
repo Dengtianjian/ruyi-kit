@@ -1,12 +1,12 @@
 //* 事件总线、任务巴士
 
-type TSubscribers = Array<(...params) => void>;
+type TSubscribers = Array<(...params: any[]) => void>;
 
 const List: Map<string, TSubscribers> = new Map();
 
 export default {
   distribute(name: string): {
-    complete: (...params) => void
+    complete: (...params: any[]) => void
   } {
     if (!List.has(name)) {
       List.set(name, []);
@@ -21,7 +21,7 @@ export default {
       }
     };
   },
-  subscribe(name: string, callback: (...params) => void): {
+  subscribe(name: string, callback: (...params: any[]) => void): {
     cancel: () => void
   } {
     if (!List.has(name)) {
@@ -36,7 +36,7 @@ export default {
       }
     }
   },
-  once(name: string, callback: (...params) => void): void {
+  once(name: string, callback: (...params: any[]) => void): void {
     if (!List.has(name)) {
       List.set(name, []);
     }
