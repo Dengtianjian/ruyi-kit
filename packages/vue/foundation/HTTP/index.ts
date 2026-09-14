@@ -41,12 +41,12 @@ export interface IPagination<Data> {
 export type THTTPMiddleware<T = any, ResponseHeader extends Record<string, string> = Record<string, string>> = (http: HTTP, next: () => Promise<IResponse<T, ResponseHeader>>) => Promise<IResponse<T, ResponseHeader>>;
 
 export default class HTTP {
-  #baseURL: string = null;
+  #baseUrl: string = null;
   /**
    * 获取基URL
    */
-  get requestURL() {
-    return this.#baseURL;
+  get requestUrl() {
+    return this.#baseUrl;
   }
   #prefix: string | number | (number | string)[] = null;
   get requestPrefix() {
@@ -74,12 +74,12 @@ export default class HTTP {
   get requestBody() {
     return this.#body;
   }
-  #pipes: string[] = [];
+  #transforms: string[] = [];
   /**
-   * 获取请求管道
+   * 获取数据转换指令
    */
-  get requestPipes() {
-    return this.#pipes;
+  get requestTransforms() {
+    return this.#transforms;
   }
   #headers: Record<string, string> = {};
   #globalHeaders: Record<string, string> = {};
@@ -101,15 +101,15 @@ export default class HTTP {
 
   /**
    * 构建HTTP实例
-   * @param baseURL 基URL
+   * @param baseUrl 基URL
    * @param method 请求方式
    * @param query 查询参数
    * @param body 请求体
-   * @param pipes 数据管道
+   * @param transforms 数据转换指令
    * @param headers 请求头
    */
-  constructor(baseURL: string = null, method: TMethods = "GET", query: Record<string, number | string | boolean> = {}, body: TBody = null, pipes: string[] = [], options: RequestInit = {}, headers: Record<string, string> = {}, globalMiddlewares: Array<THTTPMiddleware> = []) {
-    this.#baseURL = baseURL;
+  constructor(baseUrl: string = null, method: TMethods = "GET", query: Record<string, number | string | boolean> = {}, body: TBody = null, transforms: string[] = [], options: RequestInit = {}, headers: Record<string, string> = {}, globalMiddlewares: Array<THTTPMiddleware> = []) {
+    this.#baseUrl = baseUrl;
     this.#method = method;
     for (const key in query) {
       let value = query[key];
@@ -120,18 +120,18 @@ export default class HTTP {
       this.#query[key] = value.toString();
     }
     this.#body = body;
-    this.#pipes = pipes;
+    this.#transforms = transforms;
     this.#options = options;
     this.#globalHeaders = headers;
     this.#globalMiddlewares = globalMiddlewares;
   }
   /**
    * 设置请求根地址
-   * @param baseURl URL地址
+   * @param baseUrl URL地址
    * @returns HTTP
    */
-  url(baseURl: string) {
-    this.#baseURL = baseURl;
+  url(baseUrl: string) {
+    this.#baseUrl = baseUrl;
     return this;
   }
   /**
@@ -143,12 +143,12 @@ export default class HTTP {
     return this;
   }
   /**
-   * 增加管道
-   * @param pipes 管道名称
+   * 增加数据转换指令
+   * @param transforms 转换指令
    * @returns HTTP
    */
-  pipes(...pipes: string[]): this {
-    this.#pipes.push(...pipes);
+  transforms(...transforms: string[]): this {
+    this.#transforms.push(...transforms);
     return this;
   }
   /**
@@ -202,23 +202,23 @@ export default class HTTP {
   /**
    * 生成一个URL
    * @deprecated
-   * @param baseURL 基URL
+   * @param baseUrl 基URL
    * @param uri URI
    * @param query 查询参数
    * @returns string
    */
-  static genURL(baseURL: string, uri: string | number | (string | number)[], query: Record<string, string | number> = {}): string {
+  static genUrl(baseUrl: string, uri: string | number | (string | number)[], query: Record<string, string | number> = {}): string {
     uri = uri ?? [];
     let queryString: string = "";
 
-    if (baseURL.includes("?")) {
-      const uris = baseURL.split("?");
+    if (baseUrl.includes("?")) {
+      const uris = baseUrl.split("?");
       uris[1].split("&").map(item => item.split("=")).forEach(item => {
         if (!query[item[0]]) {
           query[item[0]] = item[1];
         }
       });
-      baseURL = baseURL.substring(0, baseURL.lastIndexOf("?"));
+      baseUrl = baseUrl.substring(0, baseUrl.lastIndexOf("?"));
     }
 
     let queryGroup: string[] = [];
@@ -227,8 +227,8 @@ export default class HTTP {
     }
     queryString = queryGroup.join("&");
 
-    if (baseURL[baseURL.length - 1] === "/") {
-      baseURL = baseURL.substring(0, baseURL.length - 1);
+    if (baseUrl[baseUrl.length - 1] === "/") {
+      baseUrl = baseUrl.substring(0, baseUrl.length - 1);
     }
     uri = Array.isArray(uri) ? uri : [uri];
     uri = uri.map(item => {
@@ -243,27 +243,27 @@ export default class HTTP {
       return item;
     });
     uri = uri.filter(item => item.toString().trim());
-    return [baseURL, ...uri].join("/") + `?${queryString}`;
+    return [baseUrl, ...uri].join("/") + `?${queryString}`;
   }
   /**
  * 生成请求URL
- * @param baseURL 基URL
+ * @param baseUrl 基URL
  * @param uri URI
  * @param query 查询参数
  * @returns string
  */
-  generateRequestURL(baseURL: string, uri: string | number | (string | number)[], query: Record<string, string | number> = {}): string {
+  generateRequestUrl(baseUrl: string, uri: string | number | (string | number)[], query: Record<string, string | number> = {}): string {
     uri = uri ?? [];
     let queryString: string = "";
 
-    if (baseURL.includes("?")) {
-      const uris = baseURL.split("?");
+    if (baseUrl.includes("?")) {
+      const uris = baseUrl.split("?");
       uris[1].split("&").map(item => item.split("=")).forEach(item => {
         if (!query[item[0]]) {
           query[item[0]] = item[1];
         }
       });
-      baseURL = baseURL.substring(0, baseURL.lastIndexOf("?"));
+      baseUrl = baseUrl.substring(0, baseUrl.lastIndexOf("?"));
     }
 
     let queryGroup: string[] = [];
@@ -272,8 +272,8 @@ export default class HTTP {
     }
     queryString = queryGroup.join("&");
 
-    if (baseURL[baseURL.length - 1] === "/") {
-      baseURL = baseURL.substring(0, baseURL.length - 1);
+    if (baseUrl[baseUrl.length - 1] === "/") {
+      baseUrl = baseUrl.substring(0, baseUrl.length - 1);
     }
     uri = Array.isArray(uri) ? uri : [uri];
     uri = uri.map(item => {
@@ -288,7 +288,7 @@ export default class HTTP {
       return item;
     });
     uri = uri.filter(item => item.toString().trim());
-    return [baseURL, ...uri].join("/") + `?${queryString}`;
+    return [baseUrl, ...uri].join("/") + `?${queryString}`;
   }
   fetch<ResponseData>() {
     return new Promise<IResponse<ResponseData>>((resolve, reject) => {
@@ -339,7 +339,7 @@ export default class HTTP {
       }).catch(reject).finally(() => {
         this.#query = {};
 
-        this.#pipes = [];
+        this.#transforms = [];
 
         this.#body = null;
 
@@ -374,8 +374,8 @@ export default class HTTP {
     this.#method = method = method ?? this.#method;
     this.#uri = uri;
 
-    if (this.#pipes.length) {
-      this.query("_pipes", this.#pipes.join(","));
+    if (this.#transforms.length) {
+      this.query("_transform", this.#transforms.join(","));
     }
 
     const Headers = Object.assign({}, this.#headers, this.#globalHeaders);
@@ -391,19 +391,19 @@ export default class HTTP {
       this.#body = JSON.stringify(this.#body);
     }
 
-    const URIs = [];
+    const uris = [];
     if (uri) {
       if (!Array.isArray(uri)) {
-        URIs.push(uri);
+        uris.push(uri);
       } else {
-        URIs.push(...uri);
+        uris.push(...uri);
       }
     }
     if (this.#prefix) {
       if (Array.isArray(this.#prefix)) {
-        URIs.unshift(...this.#prefix);
+        uris.unshift(...this.#prefix);
       } else {
-        URIs.unshift(this.#prefix);
+        uris.unshift(this.#prefix);
       }
     }
 
@@ -412,7 +412,7 @@ export default class HTTP {
     }
 
     return {
-      input: this.generateRequestURL(this.#baseURL, URIs, this.#query),
+      input: this.generateRequestUrl(this.#baseUrl, uris, this.#query),
       init: options
     }
   }

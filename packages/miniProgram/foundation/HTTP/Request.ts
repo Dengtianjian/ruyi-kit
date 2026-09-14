@@ -59,7 +59,7 @@ export default class extends HTTP {
 
     return new Promise((resolve, reject) => {
       const options: WechatMiniprogram.UploadFileOption = {
-        url: HTTP.genURL(super.getBaseURL, uri, this.getQuery),
+        url: HTTP.genUrl(super.getBaseUrl, uri, this.getQuery),
         name: fileName,
         filePath: tempFilePath,
         formData: body,

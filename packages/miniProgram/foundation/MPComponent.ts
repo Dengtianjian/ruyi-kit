@@ -1,7 +1,7 @@
 import MPStore from "./MPStore";
 
 export type TMPComponentData = {
-  _StaticURL?: string
+  _StaticUrl?: string
   _PageScrollTop?: number
   _RuyiPageId?: string
 };
@@ -29,8 +29,8 @@ export default function <
 
   options.data._RuyiPageId = RuyiPageId;
 
-  if (!options['data']['_StaticURL']) {
-    options['data']['_StaticURL'] = "";
+  if (!options['data']['_StaticUrl']) {
+    options['data']['_StaticUrl'] = "";
   }
 
   options.useStore = function (store, pageDataKey, storeKey) {

@@ -6,13 +6,13 @@ export default class RuyiRequest extends Request {
   /**
  * 构建HTTP实例
  * @param prefix 前缀
- * @param baseURL 基URL
+ * @param baseUrl 基URL
  * @param method 请求方式
  * @param query 查询参数
  * @param body 请求体
- * @param pipes 数据管道
+ * @param transforms 数据转换指令
  */
-  constructor(prefix: string = null, baseURL: string = null, method: TMethods = "GET", query: Record<string, number | string | boolean> = {}, body: TBody = null, pipes: string[] = [], options: RequestInit = {}, headers: Record<string, string> = {}, globalMiddlewares: Array<THTTPMiddleware> = []) {
+  constructor(prefix: string = null, baseUrl: string = null, method: TMethods = "GET", query: Record<string, number | string | boolean> = {}, body: TBody = null, transforms: string[] = [], options: RequestInit = {}, headers: Record<string, string> = {}, globalMiddlewares: Array<THTTPMiddleware> = []) {
     globalMiddlewares.push(async (http, next) => {
       http.header("X-Ajax", "1");
       if (localStorage.getItem("Ruyi_Token")) {
@@ -24,7 +24,7 @@ export default class RuyiRequest extends Request {
       return res;
     });
 
-    super(prefix, baseURL, method, query, body, pipes, options, headers, globalMiddlewares);
+    super(prefix, baseUrl, method, query, body, transforms, options, headers, globalMiddlewares);
   }
   /**
    * 处理鉴权Token

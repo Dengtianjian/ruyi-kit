@@ -19,7 +19,7 @@ function uploadPostAttachment(file: UploadFileInfo): Promise<UploadFileInfo> {
       id: res.toString(),
       name: file.file.name,
       status: "finished",
-      url: AApi.genAttachmentPreviewURL(res)
+      url: AApi.genAttachmentPreviewUrl(res)
     };
   });
 }

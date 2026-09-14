@@ -67,7 +67,7 @@ export class MPQCloudCos extends MPOSS<ICOS> {
     });
   }
 
-  getObjectURL(Key: string, Query: TOSSQuery = {}, Expires: number = null): Promise<string> {
+  getObjectUrl(Key: string, Query: TOSSQuery = {}, Expires: number = null): Promise<string> {
     return new Promise<string>((resolve, reject) => {
       this.OSSClient.getObjectUrl({
         Bucket: this.Bucket,

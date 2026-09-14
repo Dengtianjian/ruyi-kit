@@ -7,9 +7,9 @@ import SettingFormService from "../SettingFormService";
  */
 export default class <T extends Record<string, any>> extends SettingFormService<T> {
   #apiInstance: DiscuzXSettingsApi = null;
-  constructor(apiReuqestBaseURL: string, defaultValue: T) {
+  constructor(apiRequestBaseUrl: string, defaultValue: T) {
     super(defaultValue, null);
-    this.#apiInstance = new DiscuzXSettingsApi("settings", apiReuqestBaseURL);
+    this.#apiInstance = new DiscuzXSettingsApi("settings", apiRequestBaseUrl);
   }
   // @ts-ignore
   load() {

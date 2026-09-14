@@ -176,14 +176,14 @@ Component<{}, {
         const fileList: Array<{
           key?: string,
           url: string,
-          coverURL?: string,
+          coverUrl?: string,
           type: "image" | "video"
         }> = [];
 
         res.tempFiles.forEach(item => {
           fileList.push({
             url: this.properties.messageFile ? item.path : item.tempFilePath,
-            coverURL: item?.thumbTempFilePath ?? null,
+            coverUrl: item?.thumbTempFilePath ?? null,
             type: item.fileType
           });
         });

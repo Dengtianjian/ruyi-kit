@@ -1,7 +1,7 @@
 import MPStore from "./MPStore";
 
 export type TMPPageData = {
-  _StaticURL?: string
+  _StaticUrl?: string
   _PageScrollTop?: number
   _RuyiPageId?: string
 };
@@ -17,8 +17,8 @@ export default function <TData, TCustom>(options: TMPPageOptions & WechatMinipro
 
   options.data._RuyiPageId = RuyiPageId;
 
-  if (!options['data']['_StaticURL']) {
-    options['data']['_StaticURL'] = "";
+  if (!options['data']['_StaticUrl']) {
+    options['data']['_StaticUrl'] = "";
   }
 
   if (!options['onPageScroll']) {

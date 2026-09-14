@@ -6,14 +6,14 @@ export default class Request extends HTTP {
   /**
  * 构建HTTP实例
  * @param prefix 前缀
- * @param baseURL 基URL
+ * @param baseUrl 基URL
  * @param method 请求方式
  * @param query 查询参数
  * @param body 请求体
- * @param pipes 数据管道
- */
-  constructor(prefix: string = null, baseURL: string = null, method: TMethods = "GET", query: Record<string, number | string | boolean> = {}, body: TBody = null, pipes: string[] = [], options: RequestInit = {}, headers: Record<string, string> = {}, globalMiddlewares: Array<THTTPMiddleware> = []) {
-    super(baseURL, method, query, body, pipes, options, headers, globalMiddlewares);
+ * @param transforms 数据转换指令
+*/
+  constructor(prefix: string = null, baseUrl: string = null, method: TMethods = "GET", query: Record<string, number | string | boolean> = {}, body: TBody = null, transforms: string[] = [], options: RequestInit = {}, headers: Record<string, string> = {}, globalMiddlewares: Array<THTTPMiddleware> = []) {
+    super(baseUrl, method, query, body, transforms, options, headers, globalMiddlewares);
     this.prefix(prefix);
   }
   /**

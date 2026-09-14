@@ -19,13 +19,13 @@ export default {
       }, delay);
     });
   },
-  delayNavigateBack(delta: number = 1, delay: number = 1444, redirectToURL: string = null, redirectType: "navigate" | "switchTab" = "navigate") {
+  delayNavigateBack(delta: number = 1, delay: number = 1444, redirectToUrl: string = null, redirectType: "navigate" | "switchTab" = "navigate") {
     const Pages = getCurrentPages();
-    if (Pages.length === 1 && redirectToURL) {
+    if (Pages.length === 1 && redirectToUrl) {
       if (redirectType === "navigate") {
-        return this.delayRedirectTo(redirectToURL, delay);
+        return this.delayRedirectTo(redirectToUrl, delay);
       } else {
-        return this.delaySwitchTab(redirectToURL, delay);
+        return this.delaySwitchTab(redirectToUrl, delay);
       }
     }
     return new Promise((resolve, reject) => {

@@ -55,7 +55,7 @@ export class MPOSSService {
  * @param Expires number Url中的签名几秒后失效，默认为 900 秒
  * @returns string 计算得到的 Url
  */
-  getObjectURL(Key: string, Query: TOSSQuery = {}, Expires: number = null) {
-    return this.OSS.getObjectURL(Key, Query, Expires);
+  getObjectUrl(Key: string, Query: TOSSQuery = {}, Expires: number = null) {
+    return this.OSS.getObjectUrl(Key, Query, Expires);
   }
 }

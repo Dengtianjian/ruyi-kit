@@ -27,12 +27,12 @@ export interface IResponse<ResponseData> {
 }
 
 export default class HTTP {
-  #baseURL: string = null;
+  #baseUrl: string = null;
   /**
    * 获取基URL
    */
-  get getBaseURL() {
-    return this.#baseURL;
+  get getBaseUrl() {
+    return this.#baseUrl;
   }
   #method: TMethods = "GET";
   /**
@@ -55,12 +55,12 @@ export default class HTTP {
   get getBody() {
     return this.#body;
   }
-  #pipes: string[] = [];
+  #transforms: string[] = [];
   /**
-   * 获取请求管道
+   * 获取数据转换指令
    */
-  get getPipes() {
-    return this.#pipes;
+  get getTransforms() {
+    return this.#transforms;
   }
   #headers: Record<string, string> = {};
   /**
@@ -72,14 +72,14 @@ export default class HTTP {
 
   /**
    * 构建HTTP实例
-   * @param baseURL 基URL
+   * @param baseUrl 基URL
    * @param method 请求方式
    * @param query 查询参数
    * @param body 请求体
-   * @param pipes 数据管道
+   * @param transforms 数据转换指令
    */
-  constructor(baseURL: string = null, method: TMethods = "GET", query: Record<string, number | string | boolean> = {}, body: TBody = null, pipes: string[] = []) {
-    this.#baseURL = baseURL;
+  constructor(baseUrl: string = null, method: TMethods = "GET", query: Record<string, number | string | boolean> = {}, body: TBody = null, transforms: string[] = []) {
+    this.#baseUrl = baseUrl;
     this.#method = method;
     for (const key in query) {
       let value = query[key];
@@ -90,24 +90,24 @@ export default class HTTP {
       this.#query[key] = value.toString();
     }
     this.#body = body;
-    this.#pipes = pipes;
+    this.#transforms = transforms;
   }
   /**
    * 设置请求根地址
-   * @param baseURl URL地址
+   * @param baseUrl URL地址
    * @returns HTTP
    */
-  url(baseURl: string) {
-    this.#baseURL = baseURl;
+  url(baseUrl: string) {
+    this.#baseUrl = baseUrl;
     return this;
   }
   /**
-   * 增加管道
-   * @param pipes 管道名称
+   * 增加数据转换指令
+   * @param transforms 转换指令
    * @returns HTTP
    */
-  pipes(...pipes: string[]): this {
-    this.#pipes.push(...pipes);
+  transforms(...transforms: string[]): this {
+    this.#transforms.push(...transforms);
     return this;
   }
   /**
@@ -157,23 +157,23 @@ export default class HTTP {
   }
   /**
    * 生成一个URL
-   * @param baseURL 基URL
+   * @param baseUrl 基URL
    * @param uri URI
    * @param query 查询参数
    * @returns string
    */
-  static genURL(baseURL: string, uri: string | number | (string | number)[], query: Record<string, string | number> = {}): string {
+  static genUrl(baseUrl: string, uri: string | number | (string | number)[], query: Record<string, string | number> = {}): string {
     uri = uri ?? [];
     let queryString: string = "";
 
-    if (baseURL.includes("?")) {
-      const uris = baseURL.split("?");
+    if (baseUrl.includes("?")) {
+      const uris = baseUrl.split("?");
       uris[1].split("&").map(item => item.split("=")).forEach(item => {
         if (!query[item[0]]) {
           query[item[0]] = item[1];
         }
       });
-      baseURL = baseURL.substring(0, baseURL.lastIndexOf("?"));
+      baseUrl = baseUrl.substring(0, baseUrl.lastIndexOf("?"));
     }
 
     let queryGroup: string[] = [];
@@ -182,8 +182,8 @@ export default class HTTP {
     }
     queryString = queryGroup.join("&");
 
-    if (baseURL[baseURL.length - 1] === "/") {
-      baseURL = baseURL.substring(0, baseURL.length - 1);
+    if (baseUrl[baseUrl.length - 1] === "/") {
+      baseUrl = baseUrl.substring(0, baseUrl.length - 1);
     }
     uri = Array.isArray(uri) ? uri : [uri];
     uri = uri.map(item => {
@@ -198,7 +198,7 @@ export default class HTTP {
       return item;
     });
     uri = uri.filter(item => item.toString().trim());
-    return [baseURL, ...uri].join("/") + `?${queryString}`;
+    return [baseUrl, ...uri].join("/") + `?${queryString}`;
   }
   /**
    * 处理响应结果
@@ -251,9 +251,9 @@ export default class HTTP {
   send<ResponseData>(uri: string | number | (string | number)[] = null, method: TMethods = null): Promise<IResponse<ResponseData>> {
     method = method ?? this.#method;
 
-    if (this.#pipes.length) {
-      this.query("_pipes", this.#pipes.join(","));
-      this.#pipes = [];
+    if (this.#transforms.length) {
+      this.query("_transform", this.#transforms.join(","));
+      this.#transforms = [];
     }
 
     const Headers = this.#headers;
@@ -263,7 +263,7 @@ export default class HTTP {
       Headers['content-type'] = "application/json";
     }
 
-    const URL = HTTP.genURL(this.#baseURL, uri, this.#query);
+    const url = HTTP.genUrl(this.#baseUrl, uri, this.#query);
     this.#query = {}
 
     const data = this.#body;

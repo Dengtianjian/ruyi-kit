@@ -14,7 +14,7 @@ export class DiscuzXAttachmentsApi extends DiscuzXRequest {
   getAttachment(attachId: string): Promise<string> {
     return this.get(`attachments/${attachId}`);
   }
-  genAttachmentPreviewURL(attachId: string, width: number | null = null, height: number | null = null, radio: number | null = null) {
+  genAttachmentPreviewUrl(attachId: string, width: number | null = null, height: number | null = null, radio: number | null = null) {
     const SizeQuerys = [];
     if (width) {
       SizeQuerys.push(`w=${width}`);
@@ -26,9 +26,9 @@ export class DiscuzXAttachmentsApi extends DiscuzXRequest {
       SizeQuerys.push(`r=${radio}`);
     }
 
-    return `${this.requestURL}&uri=attachments/${attachId}/preview${SizeQuerys.length ? "&" + SizeQuerys.join("&") : ""}`;
+    return `${this.requestUrl}&uri=attachments/${attachId}/preview${SizeQuerys.length ? "&" + SizeQuerys.join("&") : ""}`;
   }
-  genAttachmentDownloadURL(attachId: string) {
-    return `${this.requestURL}&uri=attachments/${attachId}/download`;
+  genAttachmentDownloadUrl(attachId: string) {
+    return `${this.requestUrl}&uri=attachments/${attachId}/download`;
   }
 }

@@ -2,21 +2,21 @@ import type { TBody, THTTPMiddleware, TMethods } from ".";
 import RuyiRequest from "./RuyiRequest";
 
 export default class extends RuyiRequest {
-  constructor(prefix: string = null, baseURL: string = null, method: TMethods = "GET", query: Record<string, number | string | boolean> = {}, body: TBody = null, pipes: string[] = [], options: RequestInit = {}, headers: Record<string, string> = {}, globalMiddlewares: Array<THTTPMiddleware> = []) {
-    super(prefix, baseURL, method, query, body, pipes, options, headers, globalMiddlewares);
+  constructor(prefix: string = null, baseUrl: string = null, method: TMethods = "GET", query: Record<string, number | string | boolean> = {}, body: TBody = null, transforms: string[] = [], options: RequestInit = {}, headers: Record<string, string> = {}, globalMiddlewares: Array<THTTPMiddleware> = []) {
+    super(prefix, baseUrl, method, query, body, transforms, options, headers, globalMiddlewares);
   }
-  generateRequestURL(baseURL: string, uri: string | number | (string | number)[], query?: Record<string, string | number>): string {
+  generateRequestUrl(baseUrl: string, uri: string | number | (string | number)[], query?: Record<string, string | number>): string {
     uri = uri ?? [];
     let queryString: string = "";
 
-    if (baseURL.includes("?")) {
-      const uris = baseURL.split("?");
+    if (baseUrl.includes("?")) {
+      const uris = baseUrl.split("?");
       uris[1].split("&").map(item => item.split("=")).forEach(item => {
         if (!query[item[0]]) {
           query[item[0]] = item[1];
         }
       });
-      baseURL = baseURL.substring(0, baseURL.lastIndexOf("?"));
+      baseUrl = baseUrl.substring(0, baseUrl.lastIndexOf("?"));
     }
 
     let queryGroup: string[] = [];
@@ -25,28 +25,28 @@ export default class extends RuyiRequest {
     }
     queryString = queryGroup.join("&");
 
-    return `${baseURL}?${queryString}`;
+    return `${baseUrl}?${queryString}`;
   }
   send<ResponseData>(uri: string | number | (string | number)[] = null, method: TMethods = null): Promise<ResponseData> {
 
-    let URIs = [];
+    let uris = [];
     if (uri) {
       if (Array.isArray(uri)) {
-        URIs.push(...uri);
+        uris.push(...uri);
       } else {
-        URIs.push(uri);
+        uris.push(uri);
       }
     }
 
     if (this.requestPrefix) {
       if (Array.isArray(this.requestPrefix)) {
-        URIs.unshift(...this.requestPrefix);
+        uris.unshift(...this.requestPrefix);
       } else {
-        URIs.unshift(this.requestPrefix);
+        uris.unshift(this.requestPrefix);
       }
     }
 
-    this.query("uri", URIs ? URIs.join("/") : "/");
+    this.query("uri", uris ? uris.join("/") : "/");
     // this.prefix(null);
 
     return super.send<ResponseData>(null, method);
