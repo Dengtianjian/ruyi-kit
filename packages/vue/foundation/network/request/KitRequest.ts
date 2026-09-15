@@ -34,67 +34,117 @@ export interface IKitResponseBody<T = null> {
 export interface IKitRequestConfig extends IFetchConfig {
   /** 数据转换指令（会拼成 `_transform` 查询参数） */
   transforms?: string[];
-  /** token 在 `localStorage` 里的键名，默认 `"token"`（过期时间存 `${tokenName}_expiresAt`） */
+  /**
+   * 这个实例的 token 在 `localStorage` 里的键名，默认 `"token"`（过期时间存 `${tokenName}_expiresAt`）。
+   *
+   * 只影响当前实例：键名会随中间件一起进实例配置，不会改到其它实例。
+   */
   tokenName?: string
 }
 
 /**
- * token 在 `localStorage` 里的键名，过期时间存 `${tokenName}_expiresAt`。
+ * 一个实例用的 token 键名（`localStorage` 键名），由 `tokenName` 派生。
  *
- * 注意它是**模块级**的：鉴权中间件与 `tokenHandle` 读的都是这一个变量，
- * 所以 `IKitRequestConfig.tokenName` 换掉的是「整个模块用的键名」，不是某个实例的。
+ * 只对外暴露「改 tokenName」这一件事，两个键名的派生在 `createTokenKeys` 里一次做完 ——
+ * 不会出现改了 token 键名、却漏掉过期时间键名（于是读到别的键下的过期时间，
+ * 把有效 token 当成过期的而不带上）的情况。
  */
-let tokenName = "token";
+interface ITokenKeys {
+  /** 配置的 tokenName，键名的来源 */
+  name: string;
+  /** token 在 `localStorage` 里的键名 */
+  token: string;
+  /** token 过期时间在 `localStorage` 里的键名 */
+  expiresAt: string;
+}
+
+/**
+ * 派生出一组键名：给了 `tokenName` 就是 `<tokenName>_token` / `<tokenName>_token_expiresAt`，
+ * 不给就是 `token` / `token_expiresAt`。
+ *
+ * @param tokenName token 键名，默认 `"token"`
+ */
+function createTokenKeys(tokenName: string = null): ITokenKeys {
+  return {
+    name: tokenName,
+    token: tokenName ? `${tokenName}_token` : 'token',
+    expiresAt: tokenName ? `${tokenName}_token_expiresAt` : 'token_expiresAt'
+  };
+}
 
 /**
  * 处理响应头里的鉴权信息（自研后端的约定：`X-Auth-Token` + `X-Auth-Token-Expires-At`）。
  *
- * 两个头都没有就当 token 已失效，直接清掉本地存储；有就写回 ——
- * 但只在 token 变了的时候写（过期时间跟着更新），避免每次请求都动一遍 `localStorage`。
+ * 只有响应头里**两个头都在**才写回：绝大多数接口都不回鉴权头，
+ * 「响应里没有 token」不等于「token 失效」，不能反过来把本地还有效的 token 清掉。
+ * 有就写回，但只在 token 变了的时候写（过期时间跟着更新），
+ * 避免每次请求都动一遍 `localStorage`。
+ *
+ * 清 token 是业务的事（登出时按 `tokenKey` / `tokenExpiresAtKey` 删），这里不做 ——
+ * 库只认服务端明确回的东西。
+ *
+ * @param headers 响应头（键名已小写）
+ * @param keys 这次请求所属实例的键名
  */
-function tokenHandle(headers: Record<string, string>): void {
-  const token: string = headers['X-Auth-Token'];
-  const tokenExpiresAt: string = headers['X-Auth-Token-Expires-At'];
+function tokenHandle(headers: Record<string, string>, keys: ITokenKeys): void {
+  const token: string | undefined = headers['x-auth-token'];
+  const tokenExpiresAt: string | undefined = headers['x-auth-token-expires-at'];
 
-  if (!token && !tokenExpiresAt) {
-    localStorage.removeItem(tokenName);
-    localStorage.removeItem(`${tokenName}_expiresAt`);
+  if (!token || !tokenExpiresAt) {
     return;
   }
 
-  if (localStorage.getItem(tokenName) !== token) {
-    localStorage.setItem(tokenName, token);
-    localStorage.setItem(`${tokenName}_expiresAt`, (Number(tokenExpiresAt) * 1000).toString());
+  if (localStorage.getItem(keys.token) !== token) {
+    localStorage.setItem(keys.token, token);
+    localStorage.setItem(keys.expiresAt, (Number(tokenExpiresAt) * 1000).toString());
   }
 }
 
 /**
- * 自研后端的鉴权中间件（长期中间件，会被快照进每次请求的 Fetch 里）。
+ * 已发出的鉴权中间件（模块级，只用来「认人」）。
+ *
+ * 每个实例的中间件都是独立闭包（读自己的键名），所以基于别的实例的配置派生时，
+ * 用它从 `middlewares` 里认出「别的实例那份」，替换成自己的，避免一次请求跑两遍鉴权。
+ */
+const authMiddlewares: WeakSet<TFetchMiddleware> = new WeakSet();
+
+/**
+ * 按一组键名生成自研后端的鉴权中间件（长期中间件，会被快照进每次请求的 Fetch 里）。
  *
  * 它只做两件事：请求前在 token 未过期时带上 `Authorization: Bearer <token>`；
- * 请求后把回执里的 `X-Auth-Token` / `X-Auth-Token-Expires-At` 写回本地存储。
+ * 请求后把回执里的 `x-auth-token` / `x-auth-token-expires-at` 写回本地存储（两个头都在才写）。
  *
- * 这里不对响应做成功 / 失败判定，只看服务端有没有回这两个头：
- * 没回就当作失效清掉。要改这个策略（比如「只在成功响应上刷新 token」），
+ * 键名在闭包里，所以每个实例各用各的（见 `createTokenKeys`）。
+ *
+ * 这里不做成功 / 失败判定，也**不因为没有这两个头就清理 token**：
+ * 绝大多数接口都不回鉴权头，那是「这一响没带新 token」，不是「token 失效」。
+ * 要改这个策略（比如「只在成功响应上刷新 token」、或「某几个 401 才清」），
  * 用 `use()` 在业务侧加一个自己的中间件，而不是往库里的判定里加分支。
+ *
+ * @param keys 这个实例用的键名
  */
-const authMiddleware: TFetchMiddleware = async (fetch, next) => {
-  const token = localStorage.getItem(tokenName);
-  const tokenExpiresAt = localStorage.getItem(`${tokenName}_expiresAt`);
-  if (token && Number(tokenExpiresAt) > Date.now()) {
-    fetch.header("Authorization", `Bearer ${token}`);
-  }
+function createAuthMiddleware(keys: ITokenKeys): TFetchMiddleware {
+  const middleware: TFetchMiddleware = async (fetch, next) => {
+    const token = localStorage.getItem(keys.token);
+    const tokenExpiresAt = localStorage.getItem(keys.expiresAt);
+    if (token && Number(tokenExpiresAt) > Date.now()) {
+      fetch.header("Authorization", `Bearer ${token}`);
+    }
 
-  const response = await next();
-  tokenHandle(response.headers());
+    const response = await next();
+    tokenHandle(response.headers(), keys);
 
-  return response;
-};
+    return response;
+  };
+
+  authMiddlewares.add(middleware);
+  return middleware;
+}
 
 /**
  * 面向自研后端的请求类：
- * - token 未过期时带 `Authorization: Bearer <token>`（键名可用 `tokenName` 配置，见 `IKitRequestConfig`）
- * - 自动从响应头里刷新/清理 `localStorage` 的 token
+ * - token 未过期时带 `Authorization: Bearer <token>`（键名用 `tokenName` 配置，**每个实例各用各的**，见 `IKitRequestConfig`）
+ * - 响应头带 `x-auth-token` / `x-auth-token-expires-at` 时才刷新 `localStorage` 里的 token（写的是本实例那两个键）
  * - 数据转换：`transforms("limitFields:id,title")` 会拼成 `_transform` 查询参数，服务端 `Transform` 按白名单执行
  * - 分页与排序：`page()` / `order()` / `orders()`，对应后端 `RequestPagination` / `RequestSorting` 读的 query 参数
  * - 解包自研后端统一响应体 `{ statusCode, code, data, message, details, … }`：先校验结构，不符合就封装成这个结构
@@ -105,24 +155,35 @@ const authMiddleware: TFetchMiddleware = async (fetch, next) => {
  * 对接其它系统后端时，基于 `Request` 派生、覆写 `unwrap` 即可。
  */
 export default class KitRequest extends Request {
+  /** 这个实例用的 token 键名；鉴权中间件闭包读的就是这一份 */
+  #tokenKeys: ITokenKeys;
+
   constructor(config: IKitRequestConfig = {}) {
-    const { transforms, tokenName: configTokenName, ...rest } = config;
-    const middlewares = [...(rest.middlewares ?? [])];
-    // 基于一份已有配置重新构造时（从别的实例派生），避免把鉴权中间件装两遍
-    if (!middlewares.includes(authMiddleware)) {
-      middlewares.push(authMiddleware);
-    }
+    const { transforms, tokenName, ...rest } = config;
+    const keys: ITokenKeys = createTokenKeys(tokenName);
+
+    // 从别的实例派生时，丢掉它那份鉴权中间件（闭包的是它的键名），换成自己的 ——
+    // 两个都留着会一次请求刷两遍 token，且写的是两组不同的键
+    const middlewares = (rest.middlewares ?? []).filter(middleware => !authMiddlewares.has(middleware));
+    middlewares.push(createAuthMiddleware(keys));
+
     super({ ...rest, middlewares });
+
+    this.#tokenKeys = keys;
 
     if (transforms?.length) {
       this.transforms(...transforms);
     }
+  }
 
-    // `tokenName` 是模块级变量（见它的注释）：这里改的是全局键名，
-    // 写下去之后所有请求都用新键名，包括更早构造的实例。
-    if (tokenName) {
-      tokenName = configTokenName;
-    }
+  /** 这个实例的 token 在 `localStorage` 里的键名（业务要手动清 token 时用得上） */
+  get tokenKey(): string {
+    return this.#tokenKeys.token;
+  }
+
+  /** 这个实例的 token 过期时间在 `localStorage` 里的键名 */
+  get tokenExpiresAtKey(): string {
+    return this.#tokenKeys.expiresAt;
   }
 
   /**
@@ -280,15 +341,13 @@ export default class KitRequest extends Request {
       || body.statusCode < 200
       || body.statusCode >= 300;
 
-      console.log(body);
-      
     if (failed) {
       // 直接把整个响应体作为 reject 值，不包错误对象
       throw body;
     }
 
     console.log(body);
-    
+
 
     return body.data as Result;
   }
