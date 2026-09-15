@@ -1,5 +1,6 @@
 import { ref, type Ref } from "vue";
 import { Fetch, type TBody, type IFetchConfig, type TMethods } from "./Fetch";
+import FetchResponse from "./FetchResponse";
 import { SSE, type SSEConnection, type ISSEOptions } from "./sse";
 
 /**
@@ -12,6 +13,12 @@ import { SSE, type SSEConnection, type ISSEOptions } from "./sse";
  *
  * 这里只放「与后端无关」的调用方式；某个后端特有的参数约定（比如自研后端的 `page` / `order`）
  * 属于那一层，见 `KitRequest`。
+ *
+ * 与 `Fetch` 的另一个区别是**这里判定成功 / 失败**：`Fetch` 不判定（非 2xx 也 resolve），
+ * 本层把「非 2xx」与「重定向」当作失败走 reject，且**不包错误对象** ——
+ * reject 的值就是响应体本身（JSON 已解析，否则为文本）。
+ * 于是 `get` / `post` / `again()` 的 Promise 口径统一了：resolve 就是拿到了可用数据，
+ * catch 到的就是失败那次后端返回的内容。
  */
 export class Request extends Fetch {
   /**
@@ -22,7 +29,7 @@ export class Request extends Fetch {
 
   /**
    * 发送一次请求：快照 -> 记下这次请求（供 `again()` 重发）-> 清空本次参数
-   * -> 用独立 Fetch 发送 -> 交给 `unwrap` 解包
+   * -> 用独立 Fetch 发送 -> 分流（非 2xx / 重定向走 reject，值为响应体）-> 交给 `unwrap` 解包
    */
   protected dispatch<ResponseData = any>(
     uri: string | number | (string | number)[] = null,
@@ -44,7 +51,41 @@ export class Request extends Fetch {
     uri: string | number | (string | number)[],
     config: IFetchConfig
   ): Promise<ResponseData> {
-    return new Fetch(config).send<any>(uri).then(response => this.unwrap<ResponseData>(response));
+    return new Fetch(config).send<any>(uri).then(response => this.#unwrapResponse<ResponseData>(response));
+  }
+
+  /**
+   * 判断这次响应是不是「被重定向过」。
+   *
+   * 两个来源，覆盖不同的 redirect 设置：
+   * - 状态码落在 3xx：没有自动跟随重定向时才看得到它（`options("redirect", "manual")`、自定义 transport）；
+   * - 底层标记为已重定向：fetch 默认自动跟随，最终拿到的是跳转**之后**的响应（状态码往往还是 2xx），
+   *   只有 `Response.redirected` 能说明中途跳了一次 —— 跳登录页就是这种，必须拦下来。
+   *
+   * 已知限制：XHR 同样自动跟随、且没暴露等价标记，它这里只能靠 3xx 兜住。
+   */
+  protected isRedirected(response: FetchResponse): boolean {
+    const statusCode: number = response.statusCode();
+    if (statusCode >= 300 && statusCode < 400) {
+      return true;
+    }
+
+    const raw = response.raw<any>();
+    return raw ? raw.redirected === true : false;
+  }
+
+  /**
+   * 解包一次响应：失败直接把响应体作为 reject 值（重定向 / 非 2xx），成功才交给 `unwrap`。
+   *
+   * 不包错误对象：`catch` 到的就是响应体本身（JSON 已解析，否则是文本）。
+   * 需要状态码、响应头的失败场景用 `Fetch.send()`，拿完整 `FetchResponse`。
+   */
+  #unwrapResponse<ResponseData = any>(response: FetchResponse): ResponseData {
+    if (this.isRedirected(response) || response.failed()) {
+      // 失败走 reject 通道：值就是响应体，调用方 catch 到什么取决于后端返回什么
+      throw response.body();
+    }
+    return this.unwrap<ResponseData>(response);
   }
 
   /**
@@ -58,7 +99,7 @@ export class Request extends Fetch {
    * - 传 n：失败才自动接着发，最多重试 n 次（算上首发，总共最多发 n + 1 次）
    *
    * 拿到结果就结束，成功不会空跑；重试用尽还是失败，抛出最后一次的错误。
-   * 抛错都算失败：网络异常、非 2xx、以及 `unwrap` 里的业务校验。
+   * 抛错都算失败：网络异常、重定向、非 2xx，以及 `unwrap` 里的业务校验。
    * 还没发过请求时调用会抛错。
    *
    * @param retry 失败后自动重试的次数，默认 0（只发一次）
@@ -184,7 +225,10 @@ export class Request extends Fetch {
 
   /**
    * 轮询：每轮间隔 `waitDuration` 秒发一次请求，直到 `breakCallback` 返回 true、
-   * 请求抛错、或 `stopRequest` 被置为 true。
+   * 请求失败、或 `stopRequest` 被置为 true。
+   *
+   * 「请求失败」与本层其它调用同一口径：网络异常、非 2xx、重定向都会抛错，
+   * 一旦抛错轮询就整体 reject（不会带着一个错误响应继续问下一轮），要容错就在外面 catch。
    *
    * 目标用 uri 指定（和 `get` / `post` 一致），不需要自己包一层闭包；
    * 请求方法取实例上的配置（默认 GET，需要 POST 时 `method("POST")`）。
@@ -221,7 +265,7 @@ export class Request extends Fetch {
       await new Promise<void>(resolve => setTimeout(resolve, waitDuration * 1000));
 
       const sender = new Fetch(config);
-      const response = await sender.send<any>(uri, method).then(res => this.unwrap<ResponseData>(res));
+      const response = await sender.send<any>(uri, method).then(res => this.#unwrapResponse<ResponseData>(res));
       if (breakCallback(response) === true) {
         return response;
       }

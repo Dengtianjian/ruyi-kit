@@ -3,6 +3,32 @@ import FetchResponse from "./FetchResponse";
 import type { IFetchConfig, TFetchMiddleware } from "./Fetch";
 
 /**
+ * 自研后端的统一响应体。
+ *
+ * 字段缺失时按「不是这个协议的响应」处理（比如接口直接吐数组、或响应不是 JSON），
+ * 所以每个字段都是可选的，判定时只信真的读到的值。
+ *
+ * @template T `data` 的类型，默认 `null` 表示「不关心 data」—— 判定成败只看状态，用不到它。
+ *   `unwrap` 解包时传入业务要的类型（`get<User[]>()` 的 `User[]` 就是它），解包结果即 `data: T`。
+ */
+export interface IKitResponseBody<T = null> {
+  /** 状态，与 HTTP 状态码同口径；失败时也是它先暴露问题 */
+  statusCode?: number;
+  /** 业务码，形如 `400002:UsernameOrPasswordMissing` */
+  code?: number | string;
+  /** 业务数据；失败时同样存在（常为 `[]`），不能用「有没有 data」判断成败 */
+  data?: T;
+  /** 面向用户的提示，失败时用它作错误信息 */
+  message?: string;
+  /** 错误明细 */
+  details?: any;
+  /** 后端处理耗时，如 `26ms` */
+  requiredTime?: string;
+  /** 后端版本号 */
+  version?: string;
+}
+
+/**
  * `KitRequest` 的构造配置：在 `Fetch` 的配置之上补自研后端的数据转换指令与 token 键名
  */
 export interface IKitRequestConfig extends IFetchConfig {
@@ -71,9 +97,11 @@ const authMiddleware: TFetchMiddleware = async (fetch, next) => {
  * - 自动从响应头里刷新/清理 `localStorage` 的 token
  * - 数据转换：`transforms("limitFields:id,title")` 会拼成 `_transform` 查询参数，服务端 `Transform` 按白名单执行
  * - 分页与排序：`page()` / `order()` / `orders()`，对应后端 `RequestPagination` / `RequestSorting` 读的 query 参数
- * - 解包自研后端统一响应体 `{ code, message, data }`，直接返回 `data`
+ * - 解包自研后端统一响应体 `{ statusCode, code, data, message, details, … }`：先校验结构，不符合就封装成这个结构
+ * - 失败判定按这个格式来：非 2xx / 重定向 / 响应体 `statusCode` 非 2xx 都算失败
+ * - **失败不抛错误对象**：直接把整个响应体作为 reject 值返回，调用方 catch 到的就是后端的原始响应体
  *
- * 因为请求头、响应体格式、数据转换与分页 / 排序参数都是自研后端指定的，所以单独一层；
+ * 因为请求头、响应体格式、失败判定、数据转换与分页 / 排序参数都是自研后端指定的，所以单独一层；
  * 对接其它系统后端时，基于 `Request` 派生、覆写 `unwrap` 即可。
  */
 export default class KitRequest extends Request {
@@ -190,17 +218,78 @@ export default class KitRequest extends Request {
   }
 
   /**
-   * 解包自研后端的统一响应体 `{ code, message, data }`，业务拿到的直接是 `data`。
+   * 校验响应体是不是自研后端的固定格式。
    *
-   * 不是对象、或没有 `data` 字段时原样返回（比如接口直接吐数组、或响应不是 JSON）。
+   * 口径：对象 + 有数字型 `statusCode`，且特征字段（`code` / `data` / `message` / `details`）
+   * 至少占一个 —— 满足就按这个协议解释，不满足就当「不是这个协议的响应」走封装。
+   */
+  #isKitBody(body: any): body is IKitResponseBody {
+    return !!body
+      && typeof body === "object"
+      && typeof body.statusCode === "number"
+      && ("code" in body || "data" in body || "message" in body || "details" in body);
+  }
+
+  /**
+   * 拿到统一结构的响应体：先校验结构，不符合预期的就封装一下。
+   *
+   * 封装规则：把原始内容整个塞进 `data`，`statusCode` 取 HTTP 状态码 ——
+   * 这样不管后端吐的是不是标准格式，`unwrap` 都只认一种结构，
+   * 不必在每个分支里区分「协议响应」和「裸响应」（接口直接吐数组、响应不是 JSON 就是这类）。
+   *
+   * @template T `data` 的类型；判定成败用不到它，所以那里不传（默认 `null`）
+   */
+  #normalizeBody<T = null>(response: FetchResponse): IKitResponseBody<T> {
+    const body = response.body() as any;
+    if (this.#isKitBody(body)) {
+      return body as IKitResponseBody<T>;
+    }
+    return {
+      statusCode: response.statusCode(),
+      code: response.statusCode(),
+      data: body as T,
+      message: null,
+      details: null,
+      requiredTime: null,
+      version: null
+    };
+  }
+
+  /**
+   * 解包自研后端的统一响应体：先校验结构（不符合就封装成统一结构），再按成败分流。
+   *
+   * - 成功（HTTP 2xx 且响应体 `statusCode` 2xx 且未重定向）—— 返回 `data`
+   * - 失败 —— **不包错误对象**，直接把整个响应体作为 reject 值交给调用者：
+   *   `catch (body)` 拿到的就是后端的原始响应体（`statusCode` / `code` / `data` / `message` / `details` …），
+   *   需要提示就拿 `body.message`，分支处理拿 `body.code`。
+   *
+   * 与基类的差异只在两点：失败判定多看一层响应体里的 `statusCode`（HTTP 200 但业务报错也拦），
+   * 以及失败交出去的是**整个响应体**而不是裸 `data` —— 自研后端把失败原因写在 `message` / `details` 里，
+   * 只给 `data`（失败时往往是 `[]`）等于把原因丢了。
+   *
+   * 后端固定格式里失败响应同样带 `data`（示例里是 `[]`），所以成败只看状态、不看有没有 `data`。
    * 标 `protected`：它是给子类覆写用的扩展点，不是对外 API
    * （对接别的后端时基于 `Request` 派生、覆写这里即可）。
    */
   protected unwrap<Result>(response: FetchResponse): Result {
-    const body = response.body() as any;
-    if (body && typeof body === "object" && "data" in body) {
-      return body.data as Result;
+    // 业务要的类型传给 `data`：这里是「响应体 -> 数据」唯一一处收口
+    const body = this.#normalizeBody<Result>(response);
+
+    const failed: boolean = this.isRedirected(response)
+      || response.failed()
+      || body.statusCode < 200
+      || body.statusCode >= 300;
+
+      console.log(body);
+      
+    if (failed) {
+      // 直接把整个响应体作为 reject 值，不包错误对象
+      throw body;
     }
-    return body as Result;
+
+    console.log(body);
+    
+
+    return body.data as Result;
   }
 }
