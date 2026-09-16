@@ -159,7 +159,7 @@ export default class KitRequest extends Request {
   #tokenKeys: ITokenKeys;
 
   constructor(config: IKitRequestConfig = {}) {
-    const { transforms, tokenName, ...rest } = config;
+    const { transforms, tokenName, headers, ...rest } = config;
     const keys: ITokenKeys = createTokenKeys(tokenName);
 
     // 从别的实例派生时，丢掉它那份鉴权中间件（闭包的是它的键名），换成自己的 ——
@@ -167,7 +167,11 @@ export default class KitRequest extends Request {
     const middlewares = (rest.middlewares ?? []).filter(middleware => !authMiddlewares.has(middleware));
     middlewares.push(createAuthMiddleware(keys));
 
-    super({ ...rest, middlewares });
+    if (!('Accept' in headers)) {
+      headers['Accept'] = "application/json";
+    }
+
+    super({ ...rest, middlewares, headers });
 
     this.#tokenKeys = keys;
 
@@ -345,9 +349,6 @@ export default class KitRequest extends Request {
       // 直接把整个响应体作为 reject 值，不包错误对象
       throw body;
     }
-
-    console.log(body);
-
 
     return body.data as Result;
   }
