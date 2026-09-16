@@ -4,10 +4,11 @@
 
 <script lang="ts" setup>
 import { NMenu, type MenuProps } from "naive-ui";
-import { h, ref, watch, type AnchorHTMLAttributes, type HTMLAttributes, type VNode, type VNodeChild } from "vue";
+import { h, onUnmounted, ref, watch, type AnchorHTMLAttributes, type HTMLAttributes, type VNode, type VNodeChild } from "vue";
 import { RouterLink, useRouter, type RouteRecordRaw, type RouterLinkProps } from 'vue-router';
-import type { TNaiveUIMenuOption, TNaiveUIRouteMenuOption } from "../../types/components/NaiveUI";
+import type { INaiveUIMenuRouteMeta, TNaiveUIMenuOption, TNaiveUIRouteMenuOption } from "../../types/components/NaiveUI";
 import NaiveUIMenuLink from "./NaiveUIMenuLink.vue";
+import useRouteTableChange from "../../composables/useRouteTableChange";
 
 const Props = withDefaults(defineProps<{
   menus?: TNaiveUIRouteMenuOption[] | undefined,
@@ -20,7 +21,7 @@ const Props = withDefaults(defineProps<{
 const Router = useRouter();
 
 const ActiveMenuKey = ref<string>('');
-Router.beforeResolve((to, from) => {
+const UnregisterBeforeResolve = Router.beforeResolve((to, from) => {
   ActiveMenuKey.value = to.name?.toString() || '';
 });
 
@@ -65,7 +66,8 @@ function transformRouteToMenuOption(Routes: RouteRecordRaw[], Parent: TNaiveUIRo
       }
       return;
     };
-    const RouteMenuConfig = RouteItem.meta.naiveUIRouteMenu;
+    // meta 的菜单元信息由业务用 `declare module 'vue-router'` 扩进来（kit 里看不到那份声明），这里直接收敛成约定的类型
+    const RouteMenuConfig = RouteItem.meta.naiveUIRouteMenu as INaiveUIMenuRouteMeta["naiveUIRouteMenu"];
 
     /* @ts-ignore */
     let label: string | (() => VNode) = RouteMenuConfig.label || RouteItem.meta?.title;
@@ -243,24 +245,76 @@ function improveMenuOptions(RawMenuOptions: TNaiveUIRouteMenuOption[]): TNaiveUI
   });
 }
 
+/**
+ * 收集一棵路由树里所有记录的 name（含子记录），用来判断「这条记录是不是已经有了」。
+ */
+function collectRouteNames(Routes: RouteRecordRaw[]): string[] {
+  const Names: string[] = [];
+
+  Routes.forEach(RouteItem => {
+    if (RouteItem.name !== undefined && RouteItem.name !== null) {
+      Names.push(RouteItem.name.toString());
+    }
+    if (RouteItem.children) {
+      Names.push(...collectRouteNames(RouteItem.children));
+    }
+  });
+
+  return Names;
+}
+
+/**
+ * 菜单的路由数据源：`Props.routes` 那份静态路由 + router 里后来动态加的路由。
+ *
+ * `Props.routes` 是业务 import 进来的数组，`addRoute()` 只改 router 的路由表，不碰这个数组 ——
+ * 所以只 watch `Props.routes` 的话，动态路由加完了菜单也不会动（引用没变、内容也没变，deep 也救不了）。
+ *
+ * 去重靠 name：`getRoutes()` 返回的是拍平后的记录（父子都在一层），
+ * 已经能在 `Props.routes` 这棵树里找到的就不重复加，剩下的才是动态新增的（比如登录后加的路由）。
+ */
+function collectMenuRoutes(): RouteRecordRaw[] {
+  const Routes: RouteRecordRaw[] = Props.routes ?? [];
+  const KnownNames: Set<string> = new Set(collectRouteNames(Routes));
+
+  const DynamicRoutes: RouteRecordRaw[] = Router.getRoutes().filter(RouteRecord => {
+    if (RouteRecord.aliasOf) return false;
+
+    const Name: string | undefined = RouteRecord.name?.toString();
+    if (!Name || KnownNames.has(Name)) return false;
+
+    return !!(RouteRecord.meta as unknown as INaiveUIMenuRouteMeta | undefined)?.naiveUIRouteMenu;
+  }) as unknown as RouteRecordRaw[];
+
+  return [...Routes, ...DynamicRoutes];
+}
+
 function resolveMenuOptions() {
   MenuOptions.value = [];
-  ActiveMenuKey.value = '';
 
   let rawMenuOptions: TNaiveUIRouteMenuOption[] = [];
   if (Props.menus) {
     rawMenuOptions = improveMenus(Props.menus);
-  } else if (Props.routes) {
-    rawMenuOptions = transformRouteToMenuOption(Props.routes);
+  } else {
+    rawMenuOptions = transformRouteToMenuOption(collectMenuRoutes());
   }
 
   MenuOptions.value = improveMenuOptions(rawMenuOptions);
+
+  // 选项整个换掉了，n-menu 会丢掉高亮，按当前路由补回来
+  ActiveMenuKey.value = Router.currentRoute.value.name?.toString() || '';
 }
 
 watch(() => [Props.menus, Props.routes], resolveMenuOptions, {
   deep: true
 });
 resolveMenuOptions();
+
+// 路由表变了直接重建（addRoute / removeRoute 没有事件，只能自己接管这两个方法）
+const UnregisterRouteTableChange = useRouteTableChange(Router, resolveMenuOptions);
+onUnmounted(() => {
+  UnregisterBeforeResolve();
+  UnregisterRouteTableChange();
+});
 </script>
 
 <style scoped></style>
