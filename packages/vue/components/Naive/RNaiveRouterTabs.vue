@@ -1,6 +1,12 @@
 <template>
   <n-tabs v-bind="$attrs" v-model:value="DefaultSelectedTab" @update:value="tabValueUpdate">
     <slot />
+    <template #prefix>
+      <slot name="prefix" />
+    </template>
+    <template #suffix>
+      <slot name="suffix" />
+    </template>
   </n-tabs>
 </template>
 
