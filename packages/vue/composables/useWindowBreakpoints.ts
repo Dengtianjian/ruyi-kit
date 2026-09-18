@@ -1,4 +1,4 @@
-import { computed, getCurrentInstance, onUnmounted, ref, watch } from "vue";
+import { computed, getCurrentScope, onScopeDispose, ref, watch } from "vue";
 import type { ComputedRef, Ref } from "vue";
 import { debounce, throttle } from "../foundation/timing";
 import type { TTimedFunction } from "../foundation/timing";
@@ -150,9 +150,18 @@ export default function useWindowBreakpoints(Breakpoints: TWindowBreakpoints, Mo
     CancelSync = Sync.cancel;
   }
 
-  // 在组件里调用时自己接管注销；在组件外（比如别的函数里）调用就只能靠调用方自己管生命周期了
-  if (getCurrentInstance()) {
-    onUnmounted(() => {
+  /**
+   * 在组件 setup（或任意 effectScope）里调用时自己接管注销：监听、watch、压着的一次更新一起清掉。
+   *
+   * 这里用 `getCurrentScope()` 判断而不是 `getCurrentInstance()` —— 后者在没有活跃实例时
+   * 会退回去返回「正在渲染的实例」，于是判断通过、注册却失败（onUnmounted 拿的是另一个值），
+   * 控制台就会报 "onUnmounted is called when there is no active component instance"。
+   * `getCurrentScope()` 与 `onScopeDispose()` 读的是同一个东西，判断通过就一定注册得上。
+   *
+   * 连 scope 都没有（比如在组件外、渲染过程中调用）就跳过：那种调用方得自己管生命周期。
+   */
+  if (getCurrentScope()) {
+    onScopeDispose(() => {
       StopListen();
       StopWatch?.();
       CancelSync?.();
