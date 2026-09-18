@@ -1,3 +1,10 @@
+export { default as useRouteTableChange } from "./composables/useRouteTableChange";
+export { default as useWindowBreakpoints } from "./composables/useWindowBreakpoints";
+export type { TWindowBreakpointMode, TWindowBreakpoints, IWindowBreakpointTiming } from "./composables/useWindowBreakpoints";
+
+export { debounce, throttle } from "./foundation/timing";
+export type { TTimedFunction, IThrottleOptions } from "./foundation/timing";
+
 export { default as cookies } from "./foundation/cookies";
 export { default as eventBus } from "./foundation/eventBus";
 export { default as file } from "./foundation/file";
