@@ -59,9 +59,9 @@ export interface IFetchConfig {
  * 它是一次性的（per-request）——每次 `send()` 结束后会 `reset()`，
  * 所以不要在它身上累积跨请求的参数；长期复用的写法见 `Request`。
  *
- * 对外只开放两件事：配置的链式方法（`url` / `method` / `body` / `header` / `use` …）与 `send()`。
- * URL 生成、中间件执行、底层发送、各类读取器都是 `protected`，留给 `Request` / `SSE`
- * 这类子类复用 —— 业务侧不该绕过 `send()` 自己把请求发出去（那会跳过全部中间件）。
+ * 对外只开放两件事：配置方法（`url` / `method` / `body` / `header` / `use` …，无参即读取）与 `send()`。
+ * URL 生成、中间件执行、底层发送都是 `protected`，留给 `Request` / `SSE` 这类子类复用 ——
+ * 业务侧不该绕过 `send()` 自己把请求发出去（那会跳过全部中间件）。
  */
 export class Fetch {
   #baseUrl: string = null;
@@ -93,103 +93,136 @@ export class Fetch {
     }
   }
 
-  /* ------------------------------- 读取（供子类） ------------------------------- */
-
-  /** 请求根地址 */
-  protected get requestUrl(): string {
-    return this.#baseUrl;
-  }
-  /** 请求前缀 */
-  protected get requestPrefix(): string | number | (number | string)[] {
-    return this.#prefix;
-  }
-  /** 请求方法 */
-  protected get requestMethod(): TMethods {
-    return this.#method;
-  }
-  /** 当前 URI */
-  protected get requestUri(): string | number | (string | number)[] {
-    return this.#uri;
-  }
-  /** 查询参数（已字符串化） */
-  protected get requestQuery(): Record<string, string> {
-    return this.#query;
-  }
-  /** 请求体 */
-  protected get requestBody(): TBody {
-    return this.#body;
-  }
-  /** 本次 + 长期请求头（长期在后，长期优先） */
-  protected get requestHeaders(): Record<string, string> {
-    return {
-      ...this.#headers,
-      ...this.#globalHeaders
-    };
-  }
-  /** fetch 约束参数 */
-  protected get requestOptions(): TFetchOptions {
-    return this.#options;
-  }
-  /** 底层发送方式 */
-  protected get requestTransport(): TTransport {
-    return this.#transport;
-  }
-  /** 全部中间件（长期 + 本次，就是链路顺序：外 → 内） */
-  protected get requestMiddlewares(): Array<TFetchMiddleware> {
-    return [...this.#middlewares, ...this.#scopedMiddlewares];
-  }
-
   /* ---------------------------------- 配置 ---------------------------------- */
 
-  /** 设置请求根地址 */
-  url(baseUrl: string): this {
+  /*
+   * 链式配置方法统一约定：**不传参 = 读取，传参 = 设置**。
+   * 读取返回当前值，设置写入并返回 `this`，于是一路 `request.url("/api").method("POST")` 可以接着写下去。
+   *
+   * 两种行为用分开的重载声明，调用侧拿到的返回类型是精确的（不会退化成 `this | 值` 的联合）；
+   * 实现签名则写成「首个参数可选 + 返回联合类型」——零参的重载要能兼容实现签名，
+   * 首个参数一旦必填就会触发 TS2394（重载签名与其实现签名不兼容）。
+   *
+   * 读取统一走这组方法（不再有独立的 `requestXxx` getter），返回的都是**原始字段**：
+   * 「长期 + 本次」合并后的视图只在发送时临时拼（见 `resolveFetchParams` / `toConfig`），
+   * 所以 `headers()` 只给本次请求头，长期的那份在 `globalHeaders()`。
+   */
+
+  /** 请求根地址（长期配置，`reset()` 不清） */
+  url(): string;
+  url(baseUrl: string): this;
+  url(baseUrl?: string): this | string {
+    if (!arguments.length) return this.#baseUrl;
+
     this.#baseUrl = baseUrl;
     return this;
   }
-  /** 设置前缀 */
-  prefix(value: string | number | (number | string)[]): this {
+  /** URI 路径段，数组按顺序拼接；属于本次请求，`reset()` 后清空 */
+  uri(): string | number | (string | number)[];
+  uri(value: string | number | (string | number)[]): this;
+  uri(value?: string | number | (string | number)[]): this | string | number | (string | number)[] {
+    if (!arguments.length) return this.#uri;
+
+    this.#uri = value;
+    return this;
+  }
+  /** 业务前缀，拼在 URI 之前（长期配置，`reset()` 不清） */
+  prefix(): string | number | (string | number)[];
+  prefix(value: string | number | (string | number)[]): this;
+  prefix(value?: string | number | (string | number)[]): this | string | number | (string | number)[] {
+    if (!arguments.length) return this.#prefix;
+
     this.#prefix = value;
     return this;
   }
-  /** 设置请求方法 */
-  method(value: TMethods): this {
+  /** 请求方法，默认 GET（长期配置；单次请求的方法由 `send(uri, method)` 指定，不受它影响） */
+  method(): TMethods;
+  method(value: TMethods): this;
+  method(value?: TMethods): this | TMethods {
+    if (!arguments.length) return this.#method;
+
     this.#method = value;
     return this;
   }
-  /** 设置单个查询参数 */
-  query(key: string, value: number | string | boolean, allowNull: boolean = false): this {
+  /**
+   * 单个查询参数（本次请求，`reset()` 清空）。
+   * `value` 为 null / undefined 时默认**跳过不写入**——业务里 `query("a", maybeUndefined)` 是常见写法，
+   * 传 `allowNull = true` 才会把空值也拼进 URL。
+   */
+  query(key: string, value: number | string | boolean, allowNull: boolean = false): this | Record<string, string> {
     if ((value === null || value === undefined) && allowNull === false) {
       return this;
     }
     this.#query[key] = this.#stringify(value);
     return this;
   }
-  /** 批量设置查询参数 */
-  queries(query: Record<string, number | string | boolean> = {}): this {
+  /** 批量设置查询参数（本次请求）；不传参读取全部，值已字符串化，可直接改这个对象 */
+  queries(): Record<string, string>;
+  queries(query: Record<string, number | string | boolean>): this;
+  queries(query?: Record<string, number | string | boolean>): this | Record<string, string> {
+    if (!arguments.length) return this.#query;
+
+    if (query === null) query = {};
     for (const key in query) {
       this.query(key, query[key]);
     }
     return this;
   }
-  /** 设置请求体 */
-  body(data: TBody): this {
+  /**
+   * 请求体（本次请求，`reset()` 后清空）。
+   * 传普通对象会在发送时自动 JSON 化（见 `resolveFetchParams`）；只有非 GET 请求才会带上它。
+   */
+  body(): TBody;
+  body(data: TBody): this;
+  body(data?: TBody): this | TBody {
+    if (!arguments.length) return this.#body;
+
     this.#body = data;
     return this;
   }
-  /** 设置单个请求头（本次请求，发送后会被 reset 清掉） */
+  /** 设置单个请求头（本次请求，发送后会被 reset 清掉；要常驻请用 `globalHeaders()`） */
   header(key: string, value: string = ""): this {
     this.#headers[key] = value;
     return this;
   }
-  /** 批量设置请求头（本次请求） */
-  headers(headers: Record<string, string> = {}): this {
+  /**
+   * 批量设置请求头（本次请求，`reset()` 清掉，与已设的单项请求头合并而非覆盖）。
+   * 不传参读取的是**本次**请求头，不含长期请求头——发送时才会与长期请求头合并（长期优先，见 `globalHeaders`）。
+   */
+  headers(): Record<string, string>;
+  headers(headers: Record<string, string>): this;
+  headers(headers?: Record<string, string>): this | Record<string, string> {
+    if (!arguments.length) return this.#headers;
+
+    if (headers === null) headers = {};
     Object.assign(this.#headers, headers);
     return this;
   }
-  /** 设置 fetch 约束参数（对象或单个键） */
+  /**
+   * 批量设置长期请求头（随实例走，`reset()` 不清，与已有长期请求头合并而非覆盖）。
+   *
+   * 与 `headers()` 的区别只在生命周期：这里设的会一直带着（鉴权、租户标识这类），
+   * 发送时排在本次请求头之后合并，所以同名时长期优先。
+   */
+  globalHeaders(): Record<string, string>;
+  globalHeaders(headers: Record<string, string>): this;
+  globalHeaders(headers?: Record<string, string>): this | Record<string, string> {
+    if (!arguments.length) return this.#globalHeaders;
+
+    if (headers === null) headers = {};
+    Object.assign(this.#globalHeaders, headers);
+    return this;
+  }
+  /**
+   * fetch 约束参数（本次请求，`reset()` 清掉）：整对象传入是合并，也可按单个键设置。
+   * 注意 `method` 与请求头最终以本层算出的为准，`options` 里的同名字段覆盖不了它们（见 `resolveFetchParams`）。
+   */
   options(key: keyof RequestInit, value: any): this;
+  options(): TFetchOptions;
   options(options: TFetchOptions): this;
-  options(keyOrOptions: any, value?: any): this {
+  options(keyOrOptions?: any, value?: any): this | TFetchOptions {
+    if (!arguments.length) return this.#options;
+
     if (typeof keyOrOptions === "object" && keyOrOptions !== null) {
       Object.assign(this.#options, keyOrOptions);
     } else {
@@ -197,14 +230,36 @@ export class Fetch {
     }
     return this;
   }
-  /** 设置底层发送方式 */
-  transport(value: TTransport): this {
+  /** 底层发送方式，默认 `fetch`（长期配置，`reset()` 不清） */
+  transport(): TTransport;
+  transport(value: TTransport): this;
+  transport(value?: TTransport): this | TTransport {
+    if (!arguments.length) return this.#transport;
+
     this.#transport = value;
     return this;
   }
   /** 追加本次请求的中间件（发送后会被 reset 清掉） */
-  use(...middlewares: Array<TFetchMiddleware>): this {
+  use(middleware: TFetchMiddleware): this {
+    this.#scopedMiddlewares.push(middleware);
+    return this;
+  }
+  /** 本次请求的中间件（发送后会被 reset 清掉）：不传参读取，传参按顺序追加 */
+  middlewares(): Array<TFetchMiddleware>;
+  middlewares(...middlewares: Array<TFetchMiddleware>): this;
+  middlewares(...middlewares: Array<TFetchMiddleware>): this | Array<TFetchMiddleware> {
+    if (!arguments.length) return this.#scopedMiddlewares;
+
     this.#scopedMiddlewares.push(...middlewares);
+    return this;
+  }
+  /** 长期中间件（随实例走，`reset()` 不清）：不传参读取，传参按顺序追加 */
+  globalMiddlewares(): Array<TFetchMiddleware>;
+  globalMiddlewares(...middlewares: Array<TFetchMiddleware>): this;
+  globalMiddlewares(...middlewares: Array<TFetchMiddleware>): this | Array<TFetchMiddleware> {
+    if (!arguments.length) return this.#middlewares;
+
+    this.#middlewares.push(...middlewares);
     return this;
   }
   /**
@@ -223,18 +278,21 @@ export class Fetch {
   /**
    * 把当前配置导出成 `IFetchConfig`。
    * `Request` / `SSE` 都靠它派生新实例，从而保证「一次请求一个实例」。
+   *
+   * 取的都是**原始字段**（读取方法），只有请求头是合并后的：本次 + 长期（长期优先），
+   * 与发送时 `resolveFetchParams` 的算法一致 —— 派生的新实例只持有长期配置，所以必须在这一步合并。
    */
   protected toConfig(method: TMethods = null): IFetchConfig {
     return {
-      baseUrl: this.requestUrl,
-      prefix: this.requestPrefix,
-      method: method ?? this.requestMethod,
-      query: { ...this.requestQuery },
-      body: this.requestBody,
-      headers: { ...this.requestHeaders },
-      options: { ...this.requestOptions },
-      middlewares: [...this.requestMiddlewares],
-      transport: this.requestTransport
+      baseUrl: this.url(),
+      prefix: this.prefix(),
+      method: method ?? this.method(),
+      query: { ...this.queries() },
+      body: this.body(),
+      headers: { ...this.headers(), ...this.globalHeaders() },
+      options: { ...this.options() },
+      middlewares: this.resolveMiddlewares(),
+      transport: this.transport()
     };
   }
 
@@ -278,6 +336,14 @@ export class Fetch {
   }
 
   /* ---------------------------------- 发送 ---------------------------------- */
+
+  /**
+   * 本次请求要跑的中间件链路（长期 + 本次），顺序就是链路顺序：外 → 内。
+   * 只有这里把两层拼起来，`send()` 与 `SSE` 共用，改链路顺序改这一处即可。
+   */
+  protected resolveMiddlewares(): Array<TFetchMiddleware> {
+    return [...this.globalMiddlewares(), ...this.middlewares()];
+  }
 
   /**
    * 生成请求 URL
@@ -386,7 +452,7 @@ export class Fetch {
     this.#uri = uri;
     this.#method = method = method ?? this.#method ?? "GET";
 
-    const headers: Record<string, string> = { ...this.#headers, ...this.#globalHeaders };
+    const headers: Record<string, string> = { ...this.headers(), ...this.globalHeaders() };
     const { headers: optionHeaders, ...restOptions } = this.#options ?? {};
     if (optionHeaders) {
       if (optionHeaders instanceof Headers) {
@@ -499,7 +565,7 @@ export class Fetch {
     this.#uri = uri;
     this.#method = method ?? this.#method;
 
-    return this.executeMiddleware<ResponseData>(this.requestMiddlewares, () => this.fetch<ResponseData>())
+    return this.executeMiddleware<ResponseData>(this.resolveMiddlewares(), () => this.fetch<ResponseData>())
       .finally(() => this.reset());
   }
 

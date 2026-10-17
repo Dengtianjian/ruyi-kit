@@ -159,7 +159,7 @@ export default class KitRequest extends Request {
   #tokenKeys: ITokenKeys;
 
   constructor(config: IKitRequestConfig = {}) {
-    const { transforms, tokenName, headers, ...rest } = config;
+    const { transforms = [], tokenName = "token", headers = {}, ...rest } = config;
     const keys: ITokenKeys = createTokenKeys(tokenName);
 
     // 从别的实例派生时，丢掉它那份鉴权中间件（闭包的是它的键名），换成自己的 ——
@@ -197,7 +197,7 @@ export default class KitRequest extends Request {
    * （所以 `limitFields:id,title` 算一条，不是两条）。
    */
   get requestTransforms(): string[] {
-    const value = this.requestQuery["_transform"];
+    const value = this.queries()["_transform"];
     if (!value) {
       return [];
     }
@@ -230,7 +230,7 @@ export default class KitRequest extends Request {
     if (!transforms.length) {
       return this;
     }
-    const current = this.requestQuery["_transform"];
+    const current = this.queries()["_transform"];
     this.query("_transform", current ? `${current},${transforms.join(",")}` : transforms.join(","));
     return this;
   }

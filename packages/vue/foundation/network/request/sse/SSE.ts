@@ -34,7 +34,7 @@ export class SSE extends Fetch {
    * 建立连接：连接成功（响应 2xx）即 resolve，之后消息通过 `SSEConnection` 消费。
    *
    * 请求头与 URL 都用当前配置生成，并且和普通请求走同一条中间件链路
-   * （`requestMiddlewares` + `executeMiddleware`），所以 `query()` / `header()` / 中间件都生效 ——
+   * （`resolveMiddlewares()` + `executeMiddleware`），所以 `query()` / `header()` / 中间件都生效 ——
    * 包括 `KitRequest` 的 `Authorization: Bearer <token>`；响应头也会回传给中间件。
    *
    * 这里刻意不读取响应体：SSE 是长连接，`response.text()` 会一直等到流结束。
@@ -84,7 +84,7 @@ export class SSE extends Fetch {
       return new FetchResponse(sender.parseResponseHeaders(response.headers), response.status, null, response.ok, response);
     };
 
-    const response = await sender.executeMiddleware<any>(sender.requestMiddlewares, open);
+    const response = await sender.executeMiddleware<any>(sender.resolveMiddlewares(), open);
     const raw = response.raw<Response>();
 
     if (response.failed()) {

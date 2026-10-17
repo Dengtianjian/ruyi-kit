@@ -132,7 +132,7 @@ export class Request extends Fetch {
    * @param query 查询参数
    */
   get<ResponseData = any>(uri: string | string[] = null, query: Record<string, number | string> = null): Promise<ResponseData> {
-    this.queries(query);
+    this.queries(query ?? {});
     return this.dispatch<ResponseData>(uri, "GET");
   }
   /**
@@ -251,7 +251,7 @@ export class Request extends Fetch {
     waitDuration: number = 2,
     stopRequest: Ref<boolean> = ref(false)
   ): Promise<ResponseData> {
-    const method = this.requestMethod;
+    const method = this.method();
     // 快照一次：每轮 dispatch 都会 reset 掉本次参数，而轮询要用的恰恰是这一份
     const config = this.toConfig(method);
     this.reset();
