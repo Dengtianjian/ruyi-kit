@@ -25,7 +25,7 @@ export { default as discuzXRequest } from "./foundation/HTTP/discuzXRequest";
  * KitRequest — 自研后端（X-Ajax + Bearer token + data 解包）
  * SSE — 服务端推送长连接（独立于 Fetch 的一次请求一次响应模型）
  */
-export { Fetch, FetchResponse, Request, KitRequest, SSE, SSEConnection } from "./foundation/network/request";
+export { Fetch, FetchResponse, Request, KitRequest, DiscuzXRequest, SSE, SSEConnection } from "./foundation/network/request";
 export type { TTransport, TFetchMiddleware, TFetchOptions, IFetchConfig, TFetchResponseHeader, ISSEMessage, TSSEState, ISSEOptions, ISSEReconnectOptions, ISSEHeartbeatOptions } from "./foundation/network/request";
 
 export { default as DiscuzXSettingFormService } from "./services/discuzX/DiscuzXSettingFormService";

@@ -14,5 +14,6 @@ export { default as FetchResponse } from "./FetchResponse";
 export type { TFetchResponseHeader } from "./FetchResponse";
 export { Request } from "./Request";
 export { default as KitRequest } from "./KitRequest";
+export { default as DiscuzXRequest } from "./DiscuzXRequest";
 export type { IKitRequestConfig } from "./KitRequest";
 export * from "./sse";
