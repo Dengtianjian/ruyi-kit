@@ -2,7 +2,7 @@ import { JSOSS } from "./JSOSS";
 import { TOSSHeaders, TOSSQuery } from "./types/JSOSSTypes";
 import type COS from "cos-js-sdk-v5";
 import { TCosACL } from "./types/JSQCloudCosTypes";
-import { TRuyiFileAccessControl } from "../../Vue/types/common";
+import { TRuyiFileAccessControl } from "../../vue/types/common";
 
 export class JSQCloudCOS<COSClient extends COS> extends JSOSS<COSClient> {
 

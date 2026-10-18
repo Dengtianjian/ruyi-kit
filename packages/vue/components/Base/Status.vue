@@ -15,6 +15,8 @@
 </template>
 
 <script lang="ts" setup>
+import { onMounted, ref, watch } from 'vue';
+
 const Props = withDefaults(defineProps<{
   defaultText?: string,
   loading?: boolean,
@@ -39,7 +41,7 @@ const Props = withDefaults(defineProps<{
 
 const ActiveIndex = ref<number>(0);
 
-let loadingAnimationTimer = null;
+let loadingAnimationTimer: NodeJS.Timeout = null;
 function startLoadingAnimation() {
   loadingAnimationTimer = setInterval(() => {
     ActiveIndex.value = ActiveIndex.value === 2 ? 0 : ActiveIndex.value + 1;

@@ -15,7 +15,7 @@ import { NConfigProvider, NDialogProvider, NMessageProvider } from "naive-ui";
 withDefaults(defineProps<{
   themeOverrides?: GlobalThemeOverrides
 }>(), {
-  themeOverrides: {}
+  themeOverrides: null
 })
 
 </script>

@@ -1,5 +1,5 @@
 import type { MenuOption } from "naive-ui";
-import type { AnchorHTMLAttributes, HTMLAttributes, VNode, VNodeChild } from "vue";
+import type { AllowedComponentProps, AnchorHTMLAttributes, ComponentCustomProps, HTMLAttributes, RendererElement, RendererNode, VNode, VNodeChild, VNodeProps } from "vue";
 import type { RouterLinkProps } from "vue-router";
 
 export type TNaiveUIMenuTypes = "group" | "divider" | "list";
@@ -14,11 +14,13 @@ export type TNaiveUIMenuOption = MenuOption & {
     childrenKeys?: string[]
   }
 };
-export type TNaiveUIRouteMenuOption = {
+export type TNaiveUIRouteMenuOption<Meta = {}> = {
   key: string,
-  path: string,
-  label: string | (() => VNode),
+  label: string | (() => VNode<RendererNode, RendererElement, { [key: string]: any; }>) | AllowedComponentProps & ComponentCustomProps & VNodeProps & RouterLinkProps,
+
+  path?: string,
   index?: number,
+  link?: string | AllowedComponentProps & ComponentCustomProps & VNodeProps & RouterLinkProps,
   type?: TNaiveUIMenuTypes,
   show?: boolean,
   props?: HTMLAttributes,
@@ -28,7 +30,8 @@ export type TNaiveUIRouteMenuOption = {
   children?: TNaiveUIRouteMenuOption[],
   level?: number,
   disabled?: boolean,
-  childrenKeys?: string[]
+  childrenKeys?: string[],
+  meta?: Meta
 };
 
 export interface INaiveUIMenuRouteMeta {
@@ -44,3 +47,5 @@ export interface INaiveUIMenuRouteMeta {
     icon: () => VNode
   }>
 };
+
+

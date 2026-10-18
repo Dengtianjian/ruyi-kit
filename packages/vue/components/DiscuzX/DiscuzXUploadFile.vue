@@ -3,9 +3,9 @@
 </template>
 
 <script lang="ts" setup>
-import RNaiveUpload from '../Naive/RNaiveUpload.vue';
+import RNaiveUpload from '../Naive/NaiveUpload.vue';
 import { UploadFileInfo, useMessage } from 'naive-ui';
-import DiscuzXFilesApi from '../../api/discuzX/common/DiscuzXFilesApi';
+import DiscuzXFilesApi from '../../api/discuzX/common/DiscuzXFilesApi.js';
 
 const NMessage = useMessage();
 

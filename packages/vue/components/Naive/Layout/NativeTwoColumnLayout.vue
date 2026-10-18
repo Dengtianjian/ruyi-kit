@@ -1,31 +1,31 @@
 <template>
   <n-layout has-sider style="background-color:transparent;">
     <n-layout-sider :width="siderWidth" style="min-height:calc(100vh - 60px);">
-      <RRouterMenu :options="menuOptions"></RRouterMenu>
+      <NaiveRouterMenu :options :routes></NaiveRouterMenu>
     </n-layout-sider>
     <n-layout-content style="background-color:transparent;">
-      <RPanel :style="{
+      <Panel :style="{
         margin: '20px auto',
         width: contentWidth
       }" v-if="!$slots.default">
         <KeepAliveRouterView />
-      </RPanel>
+      </Panel>
       <slot />
-      <CommonFooter />
     </n-layout-content>
   </n-layout>
 </template>
 
 <script lang="ts" setup>
 import { NLayout, NLayoutSider, NLayoutContent } from 'naive-ui';
-import type { RTMenuOption } from '../../../types/components/Common';
-import CommonFooter from '../RCommonFooter.vue';
-import KeepAliveRouterView from '../RKeepAliveRouterView.vue';
-import RRouterMenu from '../RRouterMenu.vue';
-import RPanel from '../RPanel.vue';
+import NaiveRouterMenu from '../NaiveRouterMenu.vue';
+import Panel from '../../Base/Panel.vue';
+import KeepAliveRouterView from '../../Base/KeepAliveRouterView.vue';
+import { TNaiveUIRouteMenuOption } from '../../../types/native/menu.js';
+import { TRouteRecordRaw } from '../../../types/router.js';
 
 withDefaults(defineProps<{
-  menuOptions: Array<RTMenuOption>,
+  options: Array<TNaiveUIRouteMenuOption>,
+  routes: Array<TRouteRecordRaw>,
   siderWidth?: string | number,
   contentWidth?: string | number
 }>(), {

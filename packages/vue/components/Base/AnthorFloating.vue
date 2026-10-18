@@ -5,7 +5,7 @@
 </template>
 
 <script lang="ts" setup>
-import { getCurrentInstance, onMounted, onUnmounted, ref, useTemplateRef, watch, watchPostEffect } from 'vue';
+import { onMounted, onUnmounted, ref, useTemplateRef, watch, watchPostEffect } from 'vue';
 
 const Props = withDefaults(defineProps<{
   target: HTMLElement | null,

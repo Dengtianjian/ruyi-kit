@@ -3,9 +3,9 @@
 </template>
 
 <script lang="ts" setup>
-import RNaiveUpload from '../Naive/RNaiveUpload.vue';
+import RNaiveUpload from '../Naive/NaiveUpload.vue';
 import { UploadFileInfo } from 'naive-ui';
-import { DiscuzXAttachmentsApi } from '../../api/discuzX/common/DiscuzXAttachmentsApi';
+import { DiscuzXAttachmentsApi } from '../../api/discuzX/common/DiscuzXAttachmentsApi.js';
 
 const Props = defineProps<{
   action: string

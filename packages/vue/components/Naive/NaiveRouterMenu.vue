@@ -5,14 +5,15 @@
 <script lang="ts" setup>
 import { NMenu, type MenuProps } from "naive-ui";
 import { h, onUnmounted, ref, watch, type AnchorHTMLAttributes, type HTMLAttributes, type VNode, type VNodeChild } from "vue";
-import { RouterLink, useRouter, type RouteRecordRaw, type RouterLinkProps } from 'vue-router';
-import type { INaiveUIMenuRouteMeta, TNaiveUIMenuOption, TNaiveUIRouteMenuOption } from "../../types/components/NaiveUI";
-import NaiveUIMenuLink from "./NaiveUIMenuLink.vue";
+import { RouterLink, useRouter, type RouterLinkProps } from 'vue-router';
+import type { INaiveUIMenuRouteMeta, TNaiveUIMenuOption, TNaiveUIRouteMenuOption } from "../../types/native/menu";
+import NaiveUIMenuLink from "./NaiveMenuLink.vue";
 import useRouteTableChange from "../../composables/useRouteTableChange";
+import { TRouteRecordRaw } from "../../types/router";
 
 const Props = withDefaults(defineProps<{
   menus?: TNaiveUIRouteMenuOption[] | undefined,
-  routes?: RouteRecordRaw[] | undefined
+  routes?: TRouteRecordRaw[] | undefined
 } & Omit<MenuProps, "options">>(), {
   menus: undefined,
   routes: undefined
@@ -51,7 +52,7 @@ function resolveChildrenKeys(Childrens: TNaiveUIRouteMenuOption[]) {
   return Keys;
 }
 
-function transformRouteToMenuOption(Routes: RouteRecordRaw[], Parent: TNaiveUIRouteMenuOption | null = null) {
+function transformRouteToMenuOption(Routes: TRouteRecordRaw[], Parent: TNaiveUIRouteMenuOption | null = null) {
   const MenuOptions: TNaiveUIRouteMenuOption[] = [];
 
   Routes.forEach(RouteItem => {
@@ -248,7 +249,7 @@ function improveMenuOptions(RawMenuOptions: TNaiveUIRouteMenuOption[]): TNaiveUI
 /**
  * 收集一棵路由树里所有记录的 name（含子记录），用来判断「这条记录是不是已经有了」。
  */
-function collectRouteNames(Routes: RouteRecordRaw[]): string[] {
+function collectRouteNames(Routes: TRouteRecordRaw[]): string[] {
   const Names: string[] = [];
 
   Routes.forEach(RouteItem => {
@@ -272,18 +273,18 @@ function collectRouteNames(Routes: RouteRecordRaw[]): string[] {
  * 去重靠 name：`getRoutes()` 返回的是拍平后的记录（父子都在一层），
  * 已经能在 `Props.routes` 这棵树里找到的就不重复加，剩下的才是动态新增的（比如登录后加的路由）。
  */
-function collectMenuRoutes(): RouteRecordRaw[] {
-  const Routes: RouteRecordRaw[] = Props.routes ?? [];
+function collectMenuRoutes(): TRouteRecordRaw[] {
+  const Routes: TRouteRecordRaw[] = Props.routes ?? [];
   const KnownNames: Set<string> = new Set(collectRouteNames(Routes));
 
-  const DynamicRoutes: RouteRecordRaw[] = Router.getRoutes().filter(RouteRecord => {
+  const DynamicRoutes: TRouteRecordRaw[] = Router.getRoutes().filter(RouteRecord => {
     if (RouteRecord.aliasOf) return false;
 
     const Name: string | undefined = RouteRecord.name?.toString();
     if (!Name || KnownNames.has(Name)) return false;
 
     return !!(RouteRecord.meta as unknown as INaiveUIMenuRouteMeta | undefined)?.naiveUIRouteMenu;
-  }) as unknown as RouteRecordRaw[];
+  }) as unknown as TRouteRecordRaw[];
 
   return [...Routes, ...DynamicRoutes];
 }
