@@ -1,32 +1,36 @@
 <template>
-  <n-menu v-bind="Props" :options="MenuOptions" v-model:value="ActiveMenuKey" />
+  <n-menu v-bind="props" :options="menuOptions" v-model:value="activeMenuKey" />
 </template>
 
 <script lang="ts" setup>
 import { NMenu, type MenuProps } from "naive-ui";
-import { h, onUnmounted, ref, watch, type AnchorHTMLAttributes, type HTMLAttributes, type VNode, type VNodeChild } from "vue";
-import { RouterLink, useRouter, type RouterLinkProps } from 'vue-router';
-import type { INaiveUIMenuRouteMeta, TNaiveUIMenuOption, TNaiveUIRouteMenuOption } from "../../types/native/menu";
+import { h, onUnmounted, ref, watch, type AnchorHTMLAttributes, type HTMLAttributes, type VNodeChild } from "vue";
+import { RouterLink, useRouter, type RouteRecordNormalized, type RouterLinkProps } from 'vue-router';
+import type { INaiveUIMenuRouteFilter, TNaiveUIMenuOption, TNaiveUIRouteMenuOption } from "../../types/native/menu";
 import NaiveUIMenuLink from "./NaiveMenuLink.vue";
 import useRouteTableChange from "../../composables/useRouteTableChange";
 import { TRouteRecordRaw } from "../../types/router";
+import { filterMenuRoutes, routesToMenuOptions } from "../../services/native/menu";
 
-const Props = withDefaults(defineProps<{
+const props = withDefaults(defineProps<{
   menus?: TNaiveUIRouteMenuOption[] | undefined,
-  routes?: TRouteRecordRaw[] | undefined
+  routes?: TRouteRecordRaw[] | undefined,
+  /** 路由筛选条件 `{ name, level, includeChildren }`，见 `INaiveUIMenuRouteFilter`；不传则不筛 */
+  filter?: INaiveUIMenuRouteFilter | undefined
 } & Omit<MenuProps, "options">>(), {
   menus: undefined,
-  routes: undefined
+  routes: undefined,
+  filter: undefined
 });
 
-const Router = useRouter();
+const router = useRouter();
 
-const ActiveMenuKey = ref<string>('');
-const UnregisterBeforeResolve = Router.beforeResolve((to, from) => {
-  ActiveMenuKey.value = to.name?.toString() || '';
+const activeMenuKey = ref<string>('');
+const unregisterBeforeResolve = router.beforeResolve(to => {
+  activeMenuKey.value = resolveActiveMenuKey(to.matched, to.name?.toString() || '');
 });
 
-const MenuOptions = ref<TNaiveUIMenuOption[]>([]);
+const menuOptions = ref<TNaiveUIMenuOption[]>([]);
 
 function createMenuLinkLabel<PropsType = RouterLinkProps>(label: string | (() => VNodeChild), props?: PropsType extends RouterLinkProps ? RouterLinkProps : AnchorHTMLAttributes, external: boolean = false) {
   return () =>
@@ -38,182 +42,115 @@ function createMenuLinkLabel<PropsType = RouterLinkProps>(label: string | (() =>
       }
     )
 }
-function resolveChildrenKeys(Childrens: TNaiveUIRouteMenuOption[]) {
-  const Keys: string[] = [];
+/**
+ * `label` 的三种形态里只有「字符串」和「返回 VNode 的函数」能直接当链接内容渲染；
+ * 剩下那种「props 对象」形态是给 `linkProps` 用的，落到这里没有可显示的文字，退回 key。
+ */
+function resolveMenuLabel(label: TNaiveUIRouteMenuOption["label"], fallback: string): string | (() => VNodeChild) {
+  return typeof label === "string" || typeof label === "function" ? label : fallback;
+}
+function resolveChildrenKeys(children: TNaiveUIRouteMenuOption[]) {
+  const keys: string[] = [];
 
-  Childrens.forEach(ChildrenItem => {
-    Keys.push(ChildrenItem.key);
+  children.forEach(childItem => {
+    keys.push(childItem.key);
 
-    if (ChildrenItem.children) {
-      Keys.push(...resolveChildrenKeys(ChildrenItem.children as TNaiveUIRouteMenuOption[]));
+    if (childItem.children) {
+      keys.push(...resolveChildrenKeys(childItem.children as TNaiveUIRouteMenuOption[]));
     }
   });
 
-  return Keys;
+  return keys;
 }
 
-function transformRouteToMenuOption(Routes: TRouteRecordRaw[], Parent: TNaiveUIRouteMenuOption | null = null) {
-  const MenuOptions: TNaiveUIRouteMenuOption[] = [];
+function improveMenus(menus: TNaiveUIRouteMenuOption[], parent: TNaiveUIRouteMenuOption | null = null) {
+  const menuOptions: TNaiveUIRouteMenuOption[] = [];
 
-  Routes.forEach(RouteItem => {
-    if (!RouteItem.meta?.naiveUIRouteMenu) {
-      if (RouteItem.children) {
-        const Childrens = RouteItem.children ? transformRouteToMenuOption(RouteItem.children, {
-          key: RouteItem.name?.toString() || RouteItem.path,
-          path: RouteItem.path,
-          label: RouteItem.name?.toString() || RouteItem.path
-        }) : [];
-        MenuOptions.push(...Childrens);
-      }
-      return;
-    };
-    // meta 的菜单元信息由业务用 `declare module 'vue-router'` 扩进来（kit 里看不到那份声明），这里直接收敛成约定的类型
-    const RouteMenuConfig = RouteItem.meta.naiveUIRouteMenu as INaiveUIMenuRouteMeta["naiveUIRouteMenu"];
-
-    /* @ts-ignore */
-    let label: string | (() => VNode) = RouteMenuConfig.label || RouteItem.meta?.title;
-    if (!label) {
-      label = RouteItem.name?.toString() || RouteItem.path;
+  menus.forEach(menuItem => {
+    let path: string = menuItem.path;
+    if (!path.startsWith("/") && parent) {
+      path = [parent.path, path].join("/");
     }
 
-    let path: string = RouteItem.path;
-    if (!path.startsWith("/") && Parent) {
-      path = [Parent.path, path].map(item => item.trim()).filter(item => item).join("/");
-    }
-
-    const Option: TNaiveUIRouteMenuOption = {
-      key: RouteItem.name?.toString() || RouteItem.path,
+    const option: TNaiveUIRouteMenuOption = {
+      key: menuItem.key?.toString() || menuItem.path,
       path,
-      label
+      label: menuItem.label
     }
 
-    if (RouteMenuConfig.index !== undefined) {
-      Option['index'] = RouteMenuConfig.index;
+    if (menuItem.index !== undefined) {
+      option['index'] = menuItem.index;
     }
-    if (RouteMenuConfig.level !== undefined) {
-      Option['level'] = RouteMenuConfig.level;
+    if (menuItem.level !== undefined) {
+      option['level'] = menuItem.level;
     }
-    if (RouteMenuConfig.show !== undefined) {
-      Option['show'] = RouteMenuConfig.show;
+    if (menuItem.show !== undefined) {
+      option['show'] = menuItem.show;
     }
-    if (RouteMenuConfig.disabled !== undefined) {
-      Option['disabled'] = RouteMenuConfig.disabled;
+    if (menuItem.disabled !== undefined) {
+      option['disabled'] = menuItem.disabled;
     }
-    if (RouteMenuConfig.extra !== undefined) {
-      Option['extra'] = RouteMenuConfig.extra;
+    if (menuItem.extra !== undefined) {
+      option['extra'] = menuItem.extra;
     }
-    if (RouteMenuConfig.icon !== undefined) {
-      Option['icon'] = RouteMenuConfig.icon;
-    }
-
-    if (RouteMenuConfig.type) {
-      Option.type = RouteMenuConfig.type;
-
-      switch (RouteMenuConfig.type) {
-        case "divider":
-          Option.props = (RouteItem.props as HTMLAttributes) ?? undefined;
-          break;
-      }
-    }
-    if (RouteItem.children) {
-      Option.children = RouteItem.children ? transformRouteToMenuOption(RouteItem.children, Option) : [];
-      Option.childrenKeys = resolveChildrenKeys(Option.children);
+    if (menuItem.icon !== undefined) {
+      option['icon'] = menuItem.icon;
     }
 
-    MenuOptions.push(Option);
-  });
-
-  return MenuOptions;
-}
-
-function improveMenus(Menus: TNaiveUIRouteMenuOption[], Parent: TNaiveUIRouteMenuOption | null = null) {
-  const MenuOptions: TNaiveUIRouteMenuOption[] = [];
-
-  Menus.forEach(MenuItem => {
-    let path: string = MenuItem.path;
-    if (!path.startsWith("/") && Parent) {
-      path = [Parent.path, path].join("/");
-    }
-
-    const Option: TNaiveUIRouteMenuOption = {
-      key: MenuItem.key?.toString() || MenuItem.path,
-      path,
-      label: MenuItem.label
-    }
-
-    if (MenuItem.index !== undefined) {
-      Option['index'] = MenuItem.index;
-    }
-    if (MenuItem.level !== undefined) {
-      Option['level'] = MenuItem.level;
-    }
-    if (MenuItem.show !== undefined) {
-      Option['show'] = MenuItem.show;
-    }
-    if (MenuItem.disabled !== undefined) {
-      Option['disabled'] = MenuItem.disabled;
-    }
-    if (MenuItem.extra !== undefined) {
-      Option['extra'] = MenuItem.extra;
-    }
-    if (MenuItem.icon !== undefined) {
-      Option['icon'] = MenuItem.icon;
-    }
-
-    if (MenuItem.type) {
-      switch (MenuItem.type) {
+    if (menuItem.type) {
+      switch (menuItem.type) {
         case "group":
-          Option.type = 'group';
+          option.type = 'group';
           break;
         case "divider":
-          Option.type = 'divider';
-          Option.props = (MenuItem.props as HTMLAttributes) ?? undefined;
+          option.type = 'divider';
+          option.props = (menuItem.props as HTMLAttributes) ?? undefined;
           break;
       }
     }
-    if (MenuItem.children) {
-      Option.children = MenuItem.children ? improveMenus(MenuItem.children, Option) : [];
-      Option.childrenKeys = resolveChildrenKeys(Option.children);
+    if (menuItem.children) {
+      option.children = menuItem.children ? improveMenus(menuItem.children, option) : [];
+      option.childrenKeys = resolveChildrenKeys(option.children);
     }
 
-    MenuOptions.push(Option);
+    menuOptions.push(option);
   });
 
-  return MenuOptions;
+  return menuOptions;
 }
 
-function improveMenuOptions(RawMenuOptions: TNaiveUIRouteMenuOption[]): TNaiveUIMenuOption[] {
-  const MenuOptions: TNaiveUIMenuOption[] = [];
+function improveMenuOptions(rawMenuOptions: TNaiveUIRouteMenuOption[]): TNaiveUIMenuOption[] {
+  const menuOptions: TNaiveUIMenuOption[] = [];
 
-  RawMenuOptions.forEach(item => {
+  rawMenuOptions.forEach(item => {
     if (!item.type || !['group', 'divider', 'list'].includes(item.type)) {
       if ((item.linkProps && 'href' in item.linkProps) || typeof item.path === 'string' && /https?/.test(item.path)) {
-        const LinkProps: AnchorHTMLAttributes = item.linkProps ? (item.linkProps as AnchorHTMLAttributes) : {
+        const linkProps: AnchorHTMLAttributes = item.linkProps ? (item.linkProps as AnchorHTMLAttributes) : {
           href: ''
         };
-        if (!LinkProps.href && item.path) {
-          LinkProps.href = item.path.toString();
+        if (!linkProps.href && item.path) {
+          linkProps.href = item.path.toString();
         }
 
-        item.label = createMenuLinkLabel<AnchorHTMLAttributes>(item.label || item.key, LinkProps, true);
+        item.label = createMenuLinkLabel<AnchorHTMLAttributes>(resolveMenuLabel(item.label || item.key, item.key), linkProps, true);
       } else {
-        const LinkProps = item.linkProps ? (item.linkProps as RouterLinkProps) : {
+        const linkProps = item.linkProps ? (item.linkProps as RouterLinkProps) : {
           to: ''
         };
-        if (!LinkProps.to && item.path) {
-          LinkProps.to = item.path;
+        if (!linkProps.to && item.path) {
+          linkProps.to = item.path;
         }
 
-        item.label = createMenuLinkLabel<RouterLinkProps>(item.label ?? item.key, LinkProps, false);
+        item.label = createMenuLinkLabel<RouterLinkProps>(resolveMenuLabel(item.label ?? item.key, item.key), linkProps, false);
       }
     }
 
-    const MenuOption: TNaiveUIMenuOption = {
+    const menuOption: TNaiveUIMenuOption = {
       key: item.key,
       disabled: item.disabled ?? false,
       show: item.show ?? true,
       meta: {
-        index: item.index ?? RawMenuOptions.length,
+        index: item.index ?? rawMenuOptions.length,
         key: item.key ?? '',
         level: item.level,
         linkProps: item.linkProps,
@@ -221,100 +158,150 @@ function improveMenuOptions(RawMenuOptions: TNaiveUIRouteMenuOption[]): TNaiveUI
       }
     };
     if (item.label) {
-      MenuOption.label = item.label;
+      menuOption.label = item.label;
     }
     if (item.type) {
       if (item.type === 'group') {
-        MenuOption.type = 'group';
-        MenuOption.label = item.label;
+        menuOption.type = 'group';
+        menuOption.label = item.label;
       } else if (item.type === 'divider') {
-        MenuOption.type = 'divider';
-        MenuOption.props = item.props;
+        menuOption.type = 'divider';
+        menuOption.props = item.props;
       }
     }
     if (item.children) {
-      MenuOption.children = improveMenuOptions(item.children);
-      MenuOption.meta.childrenKeys = item.childrenKeys;
+      menuOption.children = improveMenuOptions(item.children);
+      menuOption.meta.childrenKeys = item.childrenKeys;
     }
 
 
-    MenuOptions.push(MenuOption);
+    menuOptions.push(menuOption);
   });
 
-  return MenuOptions.sort((a, b) => {
+  return menuOptions.sort((a, b) => {
     return a.meta.index - b.meta.index;
   });
 }
 
 /**
- * 收集一棵路由树里所有记录的 name（含子记录），用来判断「这条记录是不是已经有了」。
+ * 从运行时路由表取菜单的顶层路由。
+ *
+ * `getRoutes()` 返回的是**拍平**的记录（父记录、子记录都在同一层），直接拿去转菜单会重复：
+ * 父项里已经带着 `children`，子记录又会各自成为一项。所以先收集「作为别人的 children 出现过的 name」，
+ * 把这些记录剔掉，剩下的才是顶层。
+ *
+ * 用路由表而不是业务 import 的那份静态数组：`addRoute()` 只改 router 的路由表，
+ * 动态加的路由（比如登录后注册的）只有从这里才看得到。
  */
-function collectRouteNames(Routes: TRouteRecordRaw[]): string[] {
-  const Names: string[] = [];
+function getRouterMenuRoutes(): TRouteRecordRaw[] {
+  const records = router.getRoutes().filter(routeRecord => !routeRecord.aliasOf);
+  const childNames: Set<string> = new Set();
 
-  Routes.forEach(RouteItem => {
-    if (RouteItem.name !== undefined && RouteItem.name !== null) {
-      Names.push(RouteItem.name.toString());
-    }
-    if (RouteItem.children) {
-      Names.push(...collectRouteNames(RouteItem.children));
-    }
-  });
+  const collectChildNames = (routes: TRouteRecordRaw[]) => {
+    routes.forEach(routeItem => {
+      if (routeItem.name !== undefined && routeItem.name !== null) {
+        childNames.add(routeItem.name.toString());
+      }
+      if (routeItem.children) {
+        collectChildNames(routeItem.children as TRouteRecordRaw[]);
+      }
+    });
+  };
+  records.forEach(routeRecord => collectChildNames((routeRecord.children ?? []) as TRouteRecordRaw[]));
 
-  return Names;
+  return records.filter(routeRecord => {
+    const name: string | undefined = routeRecord.name?.toString();
+    return !name || !childNames.has(name);
+  }) as unknown as TRouteRecordRaw[];
 }
 
 /**
- * 菜单的路由数据源：`Props.routes` 那份静态路由 + router 里后来动态加的路由。
+ * 菜单用的路由数据源。
  *
- * `Props.routes` 是业务 import 进来的数组，`addRoute()` 只改 router 的路由表，不碰这个数组 ——
- * 所以只 watch `Props.routes` 的话，动态路由加完了菜单也不会动（引用没变、内容也没变，deep 也救不了）。
- *
- * 去重靠 name：`getRoutes()` 返回的是拍平后的记录（父子都在一层），
- * 已经能在 `Props.routes` 这棵树里找到的就不重复加，剩下的才是动态新增的（比如登录后加的路由）。
+ * - 传了 `routes` 就用它；`routes` 和 `menus` 都没传才从 `router.getRoutes()` 取；
+ * - 传了 `filter` 就先按它筛一遍（`name` 定位父级、`level` 比对 `meta.menu.level`、
+ *   `includeChildren` 决定结果里还留不留子树）。
  */
-function collectMenuRoutes(): TRouteRecordRaw[] {
-  const Routes: TRouteRecordRaw[] = Props.routes ?? [];
-  const KnownNames: Set<string> = new Set(collectRouteNames(Routes));
+function resolveMenuRoutes(): TRouteRecordRaw[] {
+  const routes: TRouteRecordRaw[] = props.routes ?? getRouterMenuRoutes();
+  const filter: INaiveUIMenuRouteFilter = props.filter ?? {};
 
-  const DynamicRoutes: TRouteRecordRaw[] = Router.getRoutes().filter(RouteRecord => {
-    if (RouteRecord.aliasOf) return false;
+  const hasFilter: boolean = (filter.name !== undefined && filter.name !== null)
+    || (filter.level !== undefined && filter.level !== null)
+    || filter.includeChildren === false;
+  if (!hasFilter) {
+    return routes;
+  }
 
-    const Name: string | undefined = RouteRecord.name?.toString();
-    if (!Name || KnownNames.has(Name)) return false;
+  return filterMenuRoutes(
+    routes,
+    filter.name ?? null,
+    filter.level ?? null,
+    filter.includeChildren ?? true
+  );
+}
 
-    return !!(RouteRecord.meta as unknown as INaiveUIMenuRouteMeta | undefined)?.naiveUIRouteMenu;
-  }) as unknown as TRouteRecordRaw[];
+/**
+ * 菜单里是否存在这个 key（含子项，以及 `childrenKeys` 里登记过的后代）。
+ *
+ * 参数写成宽松数组：naive-ui 的 `MenuOption` 是带自引用的联合类型，
+ * 按 `TNaiveUIMenuOption[]` 递归声明会触发「类型实例化过深」。这里只用到 key / children / meta.childrenKeys。
+ */
+function hasMenuOption(options: ReadonlyArray<any>, key: string): boolean {
+  return options.some(option => option?.key === key
+    || !!option?.meta?.childrenKeys?.includes(key)
+    || (option?.children ? hasMenuOption(option.children, key) : false));
+}
 
-  return [...Routes, ...DynamicRoutes];
+/**
+ * 当前该高亮的菜单 key。
+ *
+ * 直接拿路由名会漏掉一种情况：进的是子路由（`systemEnvironment`），而菜单里只放了 1 级项
+ * （`filterMenuRoutes(..., { includeChildren: false })`，`system` 底下没有 children 了），
+ * 名字匹配不上任何选项，父项就不亮。所以从 `matched` 的最里层往外找，
+ * 第一个「菜单里真有」的名字才是高亮项；一个都没有才退回路由名本身。
+ */
+function resolveActiveMenuKey(
+  matched: RouteRecordNormalized[] = router.currentRoute.value.matched,
+  fallbackName: string = router.currentRoute.value.name?.toString() || ''
+): string {
+  for (let index = matched.length - 1; index >= 0; index--) {
+    const name: string | undefined = matched[index]?.name?.toString();
+
+    if (name && hasMenuOption(menuOptions.value, name)) {
+      return name;
+    }
+  }
+
+  return fallbackName;
 }
 
 function resolveMenuOptions() {
-  MenuOptions.value = [];
+  menuOptions.value = [];
 
   let rawMenuOptions: TNaiveUIRouteMenuOption[] = [];
-  if (Props.menus) {
-    rawMenuOptions = improveMenus(Props.menus);
+  if (props.menus) {
+    rawMenuOptions = improveMenus(props.menus);
   } else {
-    rawMenuOptions = transformRouteToMenuOption(collectMenuRoutes());
+    rawMenuOptions = routesToMenuOptions(resolveMenuRoutes());
   }
 
-  MenuOptions.value = improveMenuOptions(rawMenuOptions);
+  menuOptions.value = improveMenuOptions(rawMenuOptions);
 
-  // 选项整个换掉了，n-menu 会丢掉高亮，按当前路由补回来
-  ActiveMenuKey.value = Router.currentRoute.value.name?.toString() || '';
+  // 选项整个换掉了，n-menu 会丢掉高亮，重新按当前路由算一次
+  activeMenuKey.value = resolveActiveMenuKey();
 }
 
-watch(() => [Props.menus, Props.routes], resolveMenuOptions, {
+watch(() => [props.menus, props.routes, props.filter], resolveMenuOptions, {
   deep: true
 });
 resolveMenuOptions();
 
 // 路由表变了直接重建（addRoute / removeRoute 没有事件，只能自己接管这两个方法）
-const UnregisterRouteTableChange = useRouteTableChange(Router, resolveMenuOptions);
+const unregisterRouteTableChange = useRouteTableChange(router, resolveMenuOptions);
 onUnmounted(() => {
-  UnregisterBeforeResolve();
-  UnregisterRouteTableChange();
+  unregisterBeforeResolve();
+  unregisterRouteTableChange();
 });
 </script>
 

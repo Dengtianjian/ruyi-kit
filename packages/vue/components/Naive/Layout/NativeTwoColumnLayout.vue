@@ -1,7 +1,7 @@
 <template>
   <n-layout has-sider style="background-color:transparent;">
     <n-layout-sider :width="siderWidth" style="min-height:calc(100vh - 60px);">
-      <NaiveRouterMenu :options :routes></NaiveRouterMenu>
+      <NaiveRouterMenu :menus="options" :routes="routes" :filter="routeFilter"></NaiveRouterMenu>
     </n-layout-sider>
     <n-layout-content style="background-color:transparent;">
       <Panel :style="{
@@ -20,12 +20,13 @@ import { NLayout, NLayoutSider, NLayoutContent } from 'naive-ui';
 import NaiveRouterMenu from '../NaiveRouterMenu.vue';
 import Panel from '../../Base/Panel.vue';
 import KeepAliveRouterView from '../../Base/KeepAliveRouterView.vue';
-import { TNaiveUIRouteMenuOption } from '../../../types/native/menu.js';
+import { INaiveUIMenuRouteFilter, TNaiveUIRouteMenuOption } from '../../../types/native/menu.js';
 import { TRouteRecordRaw } from '../../../types/router.js';
 
-withDefaults(defineProps<{
-  options: Array<TNaiveUIRouteMenuOption>,
-  routes: Array<TRouteRecordRaw>,
+const props = withDefaults(defineProps<{
+  options?: Array<TNaiveUIRouteMenuOption>,
+  routes?: Array<TRouteRecordRaw>,
+  routeFilter?: INaiveUIMenuRouteFilter,
   siderWidth?: string | number,
   contentWidth?: string | number
 }>(), {
