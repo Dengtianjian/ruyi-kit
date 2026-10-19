@@ -1,7 +1,7 @@
 <template>
   <router-view v-slot="{ Component, route }">
     <keep-alive v-if="route.meta.cache">
-      <component :is="Component" ></component>
+      <component :is="Component"></component>
     </keep-alive>
     <component :is="Component" v-else></component>
   </router-view>

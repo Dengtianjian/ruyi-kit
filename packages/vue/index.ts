@@ -1,7 +1,7 @@
-export { Fetch, FetchResponse, Request, KitRequest, DiscuzXRequest, SSE, SSEConnection } from "./foundation/network/request";
+export { Fetch, FetchResponse, Request, KitRequest, KitRestfulRequest, Restful, DiscuzXRequest, SSE, SSEConnection } from "./foundation/network/request";
 export type {
   TMethods, TBody, TTransport, TFetchMiddleware, TFetchOptions, IFetchConfig, TFetchResponseHeader,
-  IKitRequestConfig,
+  IKitRequestConfig, TKitRestfulMethods,
   ISSEMessage, TSSEState, ISSEOptions, ISSEReconnectOptions, ISSEHeartbeatOptions
 } from "./foundation/network/request";
 
