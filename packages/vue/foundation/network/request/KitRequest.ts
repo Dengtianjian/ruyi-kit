@@ -352,4 +352,16 @@ export default class KitRequest extends Request {
 
     return body.data as Result;
   }
+
+  static buildResponseBody<Body = null>(statusCode: number = 200, code: number | string = 200, data: Body = null, message: string = null, details: any = null): IKitResponseBody<Body> {
+    return {
+      statusCode,
+      code,
+      data,
+      message,
+      details,
+      requiredTime: null,
+      version: null
+    }
+  }
 }
