@@ -34,6 +34,7 @@ export * from "./types/common";
 export * from "./types/native/menu";
 /** 路由记录的类型增强（可携带业务 meta） */
 export * from "./types/router";
+export * from "./types/storage";
 
 /* -------------------------------------- 组件 -------------------------------------- */
 
