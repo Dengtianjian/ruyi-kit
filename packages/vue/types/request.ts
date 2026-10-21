@@ -1,5 +1,5 @@
 export interface IPageResponse<Data> {
-  data: Data,
+  list: Data,
   pagination: {
     total: number,
     limit: number,

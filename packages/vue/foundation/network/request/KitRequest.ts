@@ -158,6 +158,11 @@ export default class KitRequest extends Request {
   /** 这个实例用的 token 键名；鉴权中间件闭包读的就是这一份 */
   #tokenKeys: ITokenKeys;
 
+  /**
+   * @param config 实例配置：`transforms` 会立即拼进当前请求的 query，
+   *   `tokenName` 决定鉴权中间件读写的 `localStorage` 键名，
+   *   其余字段（`baseURL` / `headers` / `middlewares` 等）原样交给 `Request`。
+   */
   constructor(config: IKitRequestConfig = {}) {
     const { transforms = [], tokenName = "token", headers = {}, ...rest } = config;
     const keys: ITokenKeys = createTokenKeys(tokenName);
@@ -287,6 +292,9 @@ export default class KitRequest extends Request {
    *
    * 口径：对象 + 有数字型 `statusCode`，且特征字段（`code` / `data` / `message` / `details`）
    * 至少占一个 —— 满足就按这个协议解释，不满足就当「不是这个协议的响应」走封装。
+   *
+   * @param body 已解析的响应体（可能为 `null`、数组或任意 JSON）
+   * @returns 是自研后端格式时为 `true`，并把它收窄成 `IKitResponseBody`
    */
   #isKitBody(body: any): body is IKitResponseBody {
     return !!body
@@ -303,6 +311,8 @@ export default class KitRequest extends Request {
    * 不必在每个分支里区分「协议响应」和「裸响应」（接口直接吐数组、响应不是 JSON 就是这类）。
    *
    * @template T `data` 的类型；判定成败用不到它，所以那里不传（默认 `null`）
+   * @param response 已到手的响应
+   * @returns 统一结构的响应体，后续只管按这个形状读字段
    */
   #normalizeBody<T = null>(response: FetchResponse): IKitResponseBody<T> {
     const body = response.body() as any;
@@ -335,6 +345,11 @@ export default class KitRequest extends Request {
    * 后端固定格式里失败响应同样带 `data`（示例里是 `[]`），所以成败只看状态、不看有没有 `data`。
    * 标 `protected`：它是给子类覆写用的扩展点，不是对外 API
    * （对接别的后端时基于 `Request` 派生、覆写这里即可）。
+   *
+   * @template Result 成功时要拿到的业务数据类型（即响应体 `data` 的类型）
+   * @param response 已到手的响应
+   * @returns 成功时的 `data`
+   * @throws 失败时抛出整个响应体（不是 `Error` 实例），因此调用方用 `catch (body)` 接形状，不要用 `catch (error: Error)`
    */
   protected unwrap<Result>(response: FetchResponse): Result {
     // 业务要的类型传给 `data`：这里是「响应体 -> 数据」唯一一处收口
@@ -353,6 +368,76 @@ export default class KitRequest extends Request {
     return body.data as Result;
   }
 
+  /**
+   * 造一个「成功」的统一响应体。
+   *
+   * 用于在本地伪造一次响应（Mock、离线兜底、缓存回填），产出的结构与后端一致，
+   * 所以能直接当作 `unwrap` 的返回值、或 `catch (body)` 里读到的同一个形状。
+   *
+   * 这里只拼结构、不发请求，也不写 token —— 鉴权只认服务端回的响应头。
+   *
+   * @template Body `data` 的类型，默认 `null`
+   * @param statusCode 状态码，默认 200（与 HTTP 同口径，2xx 才被视为成功）
+   * @param code 业务码，默认与 `statusCode` 对齐
+   * @param data 业务数据
+   * @param message 提示信息，成功时一般为空
+   * @param details 错误明细，成功时一般为空
+   * @returns 结构完整的统一响应体（`requiredTime` / `version` 本地无从得知，置为 `null`）
+   */
+  buildResponse<Body = null>(statusCode: number = 200, code: number | string = 200, data: Body = null, message: string = null, details: any = null): IKitResponseBody<Body> {
+    return {
+      statusCode,
+      code,
+      data,
+      message,
+      details,
+      requiredTime: null,
+      version: null
+    }
+  }
+
+  /**
+   * 造一个「失败」的统一响应体。
+   *
+   * 用来在业务侧主动 reject 一个符合本协议结构的失败值（如拦截器里发现无权限、登录过期），
+   * 这样调用方的 `catch (body)` 不必区分「后端返回的失败」和「前端拦下来的失败」——
+   * 两种都是同样的形状，读 `message` 提示、读 `code` 分支即可。
+   *
+   * 参数顺序与 `buildResponse` 不同：`message` 在前，因为失败时它几乎必填。
+   *
+   * @template Body `data` 的类型，默认 `null`（失败时通常不带数据）
+   * @param message 面向用户的提示，失败时一般必填
+   * @param statusCode 状态码，默认 400（非 2xx 才会被判为失败）
+   * @param code 业务码，默认与 `statusCode` 对齐
+   * @param data 业务数据，失败时一般为空
+   * @param details 错误明细
+   * @returns 结构完整的统一响应体（`requiredTime` / `version` 置为 `null`）
+   */
+  buildErrorResponse<Body = null>(message: string = null, statusCode: number = 400, code: number | string = 400, data: Body = null, details: any = null): IKitResponseBody<Body> {
+    return {
+      statusCode,
+      code,
+      data,
+      message,
+      details,
+      requiredTime: null,
+      version: null
+    }
+  }
+
+  /**
+   * 造一个统一响应体。
+   *
+   * @deprecated 参数顺序不易读（`statusCode` 打头，`message` 排到第四位），
+   *   且是静态方法、拿不到实例配置。请改用实例方法 `buildResponse`（成功）或 `buildErrorResponse`（失败）。
+   * @template Body `data` 的类型，默认 `null`
+   * @param statusCode 状态码，默认 200
+   * @param code 业务码，默认与 `statusCode` 对齐
+   * @param data 业务数据
+   * @param message 提示信息
+   * @param details 错误明细
+   * @returns 结构完整的统一响应体
+   */
   static buildResponseBody<Body = null>(statusCode: number = 200, code: number | string = 200, data: Body = null, message: string = null, details: any = null): IKitResponseBody<Body> {
     return {
       statusCode,
