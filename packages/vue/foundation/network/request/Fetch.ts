@@ -149,7 +149,7 @@ export class Fetch {
    * `value` 为 null / undefined 时默认**跳过不写入**——业务里 `query("a", maybeUndefined)` 是常见写法，
    * 传 `allowNull = true` 才会把空值也拼进 URL。
    */
-  query(key: string, value: number | string | boolean, allowNull: boolean = false): this | Record<string, string> {
+  query(key: string, value: number | string | boolean, allowNull: boolean = false): this {
     if ((value === null || value === undefined) && allowNull === false) {
       return this;
     }
