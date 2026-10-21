@@ -1,5 +1,5 @@
 import dayjs from "dayjs";
-import "dayjs/esm/locale/zh-cn";
+import 'dayjs/locale/zh-cn' // 导入本地化语言
 import relativeTime from "dayjs/plugin/relativeTime";
 
 export default {
