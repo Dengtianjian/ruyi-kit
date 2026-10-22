@@ -23,6 +23,7 @@ export { default as helper } from "./foundation/helper";
 
 export { default as commonService } from "./services/commonService";
 export { default as dayjsService } from "./services/dayjsService";
+export { default as storageService } from "./services/storageService";
 /** 菜单路由筛选：按父级名称与级别，从路由表里取 `NaiveRouterMenu` 的 `routes` */
 export * from "./services/native/menu";
 
