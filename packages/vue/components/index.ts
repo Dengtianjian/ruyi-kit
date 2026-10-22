@@ -41,3 +41,5 @@ export { default as NaiveRouterTabs } from "./Naive/NaiveRouterTabs.vue";
 export { default as NaiveUpload } from "./Naive/NaiveUpload.vue";
 /** 居中的分页条 */
 export { default as NativeCenterPagination } from "./Naive/NativeCenterPagination.vue";
+/** 居中的分页条 */
+export { default as NaiveCenterPagination } from "./Naive/NaiveCenterPagination.vue";
