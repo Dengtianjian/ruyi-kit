@@ -32,6 +32,26 @@ export type TStorageInfo = {
   url?: string
 }
 
+export type TStorageGetAuthRequestBody = Partial<{
+  disk: string,
+
+  fileKey: string,
+  expires: number,
+  action: string,
+  headers: Record<string, string>,
+  urlParams: Record<string, string>,
+}>
+export type TStorageGetAuthPostRequestBody = TStorageGetAuthRequestBody & Partial<{
+  name: string,
+  path: string,
+  size: number,
+  width: number,
+  height: number,
+  accessControl: string,
+  ref: string,
+  type: string
+}>
+
 export type TStorageAuth = {
   key: string,
   method: string,
