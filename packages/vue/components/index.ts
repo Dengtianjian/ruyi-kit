@@ -20,6 +20,8 @@ export { default as Panel } from "./Base/Panel.vue";
 export { default as Space } from "./Base/Space.vue";
 /** 列表底部状态：下拉加载更多 / 加载中 / 已加载完 */
 export { default as Status } from "./Base/Status.vue";
+/** 上传基组件：自带 trigger / 文件列表插槽，`v-model:file` / `v-model:files`，可拖拽上传 */
+export { default as Upload } from "./Base/Upload/Upload.vue";
 
 /* ----------------------------------- Naive UI ----------------------------------- */
 
@@ -37,9 +39,8 @@ export { default as NaiveProvider } from "./Naive/NaiveProvider.vue";
 export { default as NaiveRouterMenu } from "./Naive/NaiveRouterMenu.vue";
 /** 路由驱动的 tabs */
 export { default as NaiveRouterTabs } from "./Naive/NaiveRouterTabs.vue";
-/** `n-upload` 的封装：接上传 / 删除回调与数量、大小限制 */
-export { default as NaiveUpload } from "./Naive/NaiveUpload.vue";
 /** 居中的分页条 */
 export { default as NativeCenterPagination } from "./Naive/NativeCenterPagination.vue";
 /** 居中的分页条 */
 export { default as NaiveCenterPagination } from "./Naive/NaiveCenterPagination.vue";
+export { default as NaiveUpload } from "./Naive/NaiveUpload.vue";

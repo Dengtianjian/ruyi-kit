@@ -43,7 +43,11 @@ export default {
     params: Record<string, string>
   } {
     const fileURL = new URL(url);
-    const uri = fileURL.pathname.slice(1);
+    let uri = fileURL.pathname.slice(1);
+    if (uri === 'plugin.php') {
+      uri = fileURL.searchParams.get("uri");
+    }
+
     let key = uri;
     let suffix: string = null;
     if (prefix) {
@@ -117,6 +121,22 @@ export default {
       status: "finished",
       url,
       name: urlInfo.key
+    }
+  },
+  fileUrlToStorageInfo(url: string): TStorageInfo {
+    const urlInfo = this.parseFileUrl(url);
+
+    return {
+      id: null,
+      key: urlInfo.key,
+      name: urlInfo.key,
+      mime_type: null,
+      source_file_name: urlInfo.key,
+      size: null,
+      width: null,
+      height: null,
+      extension: null,
+      url,
     }
   }
 }

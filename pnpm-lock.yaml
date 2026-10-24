@@ -11,6 +11,9 @@ importers:
       '@types/node':
         specifier: ^26.6.5
         version: 26.6.5
+      '@v2icons/ionicons5':
+        specifier: ^0.13.0
+        version: 0.13.0
       dayjs:
         specifier: ^1.11.10
         version: 1.11.23
@@ -179,6 +182,9 @@ packages:
 
   '@types/node@26.6.5':
     resolution: {integrity: sha512-uMzsv9stDdofIZBx4UGh4Z9ZgXnGC9seRDscilBcTHAeOFk67MZg/k9bWVfO+bk4qZmG+l52hRnLwUiH2LnJTg==}
+
+  '@v2icons/ionicons5@0.13.0':
+    resolution: {integrity: sha512-qeRzXqAwvBYIYnuO9jXuC2Wnhccy2hAWLIwnyWVUk8TXUxGoHo/jXTJcImg0uz5nFYAMLJEdGdddZWOqTDTL1w==}
 
   '@vue/compiler-core@3.5.42':
     resolution: {integrity: sha512-2Ye1ilMtKXxl8qZUrQ5j0CdgenFp/HFQmta6rfRyfEsTG69L6Wk+tWuNoHYHMx9E8tF2Slvdg1FuwDvAXdy1LQ==}
@@ -581,6 +587,8 @@ snapshots:
   '@types/node@26.6.5':
     dependencies:
       undici-types: 8.9.0
+
+  '@v2icons/ionicons5@0.13.0': {}
 
   '@vue/compiler-core@3.5.42':
     dependencies:

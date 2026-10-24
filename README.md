@@ -89,9 +89,10 @@ packages
 ├── nuxt/                     # 预留
 └── vue/                      # Vue 3 组件、请求封装、业务服务与类型
     ├── components/           # 组件（.vue 源码，按子路径引入）
-    │   ├── Base/             # AnthorFloating、RCopyText、RPanel、RKeepAliveRouterView、RRouterMenu、RSpace、RStatus、RCommonFooter、Layout/RTwoColumnLayout
+    │   ├── Base/             # AnthorFloating、RCopyText、RPanel、RKeepAliveRouterView、RRouterMenu、RSpace、RStatus、RCommonFooter、
+    │   │                     # Upload/Upload（上传基组件：trigger + 文件列表插槽、可拖拽、@upload / @delete）
     │   ├── Naive/            # NaiveUIProvider、NaiveUIMenu、NaiveUIMenuLink、RNaiveConfig、RNaiveFormItem、
-    │   │                     # RNaiveRouterMenu、RNaiveRouterTabs、RNaiveUpload、RCenterPagination
+    │   │                     # RNaiveRouterMenu、RNaiveRouterTabs、RCenterPagination
     │   └── DiscuzX/          # RDiscuzXUploadAttachment、RDiscuzXUploadFile
     ├── foundation/           # 基础能力：cookies、eventBus、file、helper、naiveUI
     │   ├── HTTP/             # RuyiRequest、request、HTTP、discuzXRequest（均由 kit/vue 入口导出）

@@ -33,6 +33,8 @@ export * from "./services/native/menu";
 export * from "./types/common";
 /** Naive UI 菜单相关：路由 meta 与菜单项类型 */
 export * from "./types/native/menu";
+/** 上传组件相关的类型：文件项、`@upload` / `@delete` / `@change` 回调 */
+export * from "./types/upload";
 /** 路由记录的类型增强（可携带业务 meta） */
 export * from "./types/router";
 export * from "./types/storage";
