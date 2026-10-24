@@ -1,6 +1,6 @@
 <template>
-  <div class="r-copy" :class="{
-    'r-copy-icon': showIcon
+  <div class="copy" :class="{
+    'copy-icon': showIcon
   }" @click="copyContent" title="点击复制内容">
     <slot />
     <i class="antd antd-file-copy" v-if="showIcon"></i>
@@ -27,17 +27,17 @@ function copyContent() {
 </script>
 
 <style scoped>
-.r-copy {
+.copy {
   cursor: pointer;
 }
 
-.r-copy-icon {
+.copy-icon {
   display: flex;
   align-items: center;
   column-gap: 5px;
 }
 
-.r-copy-icon i {
+.copy-icon i {
   color: #ccc;
 }
 </style>
