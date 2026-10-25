@@ -7,7 +7,7 @@ export default {
     dayjs.locale("zh-cn");
     dayjs.extend(relativeTime);
   },
-  formatAutoFromNow(date?: string | number | Date | dayjs.Dayjs, toFromNowThreshold: number = 1000 * 60 * 60 * 24, formatTemplate: string = 'YYYY-MM-DD HH:mm:ss', withoutSuffix: boolean = false) {
+  formatAutoFromNow(date?: string | number | Date | dayjs.Dayjs, formatTemplate: string = 'YYYY-MM-DD HH:mm:ss', toFromNowThreshold: number = 1000 * 60 * 60 * 24, withoutSuffix: boolean = false) {
     const d = dayjs(date);
     if (Date.now() - d.valueOf() > toFromNowThreshold) {
       return d.format(formatTemplate);
