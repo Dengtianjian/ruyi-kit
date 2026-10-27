@@ -44,3 +44,5 @@ export { default as NativeCenterPagination } from "./Naive/NativeCenterPaginatio
 /** 居中的分页条 */
 export { default as NaiveCenterPagination } from "./Naive/NaiveCenterPagination.vue";
 export { default as NaiveUpload } from "./Naive/NaiveUpload.vue";
+
+export { default as NaiveTiptapSimpleEditor } from "./Naive/Editor/Tiptap/Simple/NaiveTiptapSimpleEditor.vue";
