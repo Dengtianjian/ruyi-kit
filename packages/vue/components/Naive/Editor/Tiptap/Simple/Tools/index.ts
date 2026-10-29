@@ -18,31 +18,34 @@
  */
 export { toolbarEditorKey, useToolbarEditor } from './context';
 
-// 自己传 `extensions` 给编辑器时，图片工具的占位节点扩展要一起带上
-export { ImageUpload } from './imageUploadNode';
-
 export { default as ToolbarDivider } from './ToolbarDivider.vue';
 
-export { default as UndoTool } from './UndoTool.vue';
-export { default as RedoTool } from './RedoTool.vue';
+export { default as UndoTool } from './Undo.vue';
+export { default as RedoTool } from './Redo.vue';
 
-export { default as BoldTool } from './BoldTool.vue';
-export { default as ItalicTool } from './ItalicTool.vue';
-export { default as UnderlineTool } from './UnderlineTool.vue';
-export { default as StrikeTool } from './StrikeTool.vue';
-export { default as InlineCodeTool } from './InlineCodeTool.vue';
+export { default as BoldTool } from './Bold.vue';
+export { default as ItalicTool } from './Italic.vue';
+export { default as UnderlineTool } from './Underline.vue';
+export { default as StrikeTool } from './Strike.vue';
+export { default as InlineCodeTool } from './InlineCode.vue';
 
-export { default as Heading2Tool } from './Heading2Tool.vue';
-export { default as Heading3Tool } from './Heading3Tool.vue';
-export { default as ParagraphTool } from './ParagraphTool.vue';
+// 1-6 级标题：逻辑都在 Heading 里，其余几个只是固定 level 的薄壳
+export { default as HeadingTool } from './Heading.vue';
+export { default as Heading1Tool } from './Heading1.vue';
+export { default as Heading2Tool } from './Heading2.vue';
+export { default as Heading3Tool } from './Heading3.vue';
+export { default as Heading4Tool } from './Heading4.vue';
+export { default as Heading5Tool } from './Heading5.vue';
+export { default as Heading6Tool } from './Heading6.vue';
+export { default as ParagraphTool } from './Paragraph.vue';
 
-export { default as BulletListTool } from './BulletListTool.vue';
-export { default as OrderedListTool } from './OrderedListTool.vue';
-export { default as BlockquoteTool } from './BlockquoteTool.vue';
-export { default as CodeBlockTool } from './CodeBlockTool.vue';
-export { default as HorizontalRuleTool } from './HorizontalRuleTool.vue';
+export { default as BulletListTool } from './BulletList.vue';
+export { default as OrderedListTool } from './OrderedList.vue';
+export { default as BlockquoteTool } from './Blockquote.vue';
+export { default as CodeBlockTool } from './CodeBlock.vue';
+export { default as HorizontalRuleTool } from './HorizontalRule.vue';
 
-export { default as LinkTool } from './LinkTool.vue';
-export { default as UnlinkTool } from './UnlinkTool.vue';
-export { default as ImageTool } from './ImageTool.vue';
-export { default as ClearFormatTool } from './ClearFormatTool.vue';
+export { default as LinkTool } from './Link.vue';
+export { default as UnlinkTool } from './Unlink.vue';
+export { default as ImageTool } from './Image.vue';
+export { default as ClearFormatTool } from './ClearFormat.vue';

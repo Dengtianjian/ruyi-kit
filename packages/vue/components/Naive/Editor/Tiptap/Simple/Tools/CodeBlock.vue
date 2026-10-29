@@ -7,7 +7,7 @@
           代码块
         </ToolbarButtonBase>
         <n-select v-if="editor.isActive('codeBlock')" size="small" title="代码块语言" v-model:value="currentLanguage"
-          :options="codeLanguages" :style="{
+          :options="languages" :style="{
             minWidth:'200px'
           }">
         </n-select>
@@ -16,17 +16,14 @@
   </ToolbarButton>
 </template>
 
-<script setup>
-import { computed } from 'vue';
-import { NSelect, NInputGroup } from 'naive-ui';
-import ToolbarButton from '../ToolbarButton.vue';
-import ToolbarButtonBase from '../ToolbarButtonBase.vue';
-import { useToolbarEditor } from './context';
-
-const editor = useToolbarEditor();
-
-/** 可选语言，和 `lowlight` 注册的 `common` 语言集对齐 */
-const codeLanguages = [
+<script>
+/**
+ * 默认的可选语言，和 `lowlight` 注册的 `common` 语言集对齐。
+ *
+ * 放模块级而不是 `<script setup>` 里：props 的 `default` 工厂在 setup 执行前就会被调用，
+ * 那时 setup 里的常量还在 TDZ 中。
+ */
+const defaultLanguages = [
   { value: 'plaintext', label: '纯文本' },
   { value: 'javascript', label: 'JavaScript' },
   { value: 'typescript', label: 'TypeScript' },
@@ -46,6 +43,35 @@ const codeLanguages = [
   { value: 'sql', label: 'SQL' },
   { value: 'bash', label: 'Bash' }
 ];
+</script>
+
+<script setup>
+import { computed } from 'vue';
+import { NSelect, NInputGroup } from 'naive-ui';
+import ToolbarButton from '../ToolbarButton.vue';
+import ToolbarButtonBase from '../ToolbarButtonBase.vue';
+import { useToolbarEditor } from './context';
+
+/**
+ * 代码块工具。
+ *
+ * 代码块激活时右侧出现语言选择器，可选语言用 `languages` 自定义
+ * （就是 `n-select` 的 options，`{ value, label }[]`）。注意 `value` 必须是
+ * highlight.js 的语言名，否则 lowlight 高亮不出来（HTML 要用 `xml`）：
+ *
+ * ```vue
+ * <CodeBlockTool :languages="[
+ *   { value: 'plaintext', label: '纯文本' },
+ *   { value: 'javascript', label: 'JS' }
+ * ]" />
+ * ```
+ */
+defineProps({
+  /** 可选语言，`{ value, label }[]`，默认是常用语言；传了就整体替换 */
+  languages: { type: Array, default: () => defaultLanguages }
+});
+
+const editor = useToolbarEditor();
 
 /**
  * 当前代码块的语言。

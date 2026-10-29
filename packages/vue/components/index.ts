@@ -45,4 +45,4 @@ export { default as NativeCenterPagination } from "./Naive/NativeCenterPaginatio
 export { default as NaiveCenterPagination } from "./Naive/NaiveCenterPagination.vue";
 export { default as NaiveUpload } from "./Naive/NaiveUpload.vue";
 
-export { default as NaiveTiptapSimpleEditor } from "./Naive/Editor/Tiptap/Simple/NaiveTiptapSimpleEditor.vue";
+export * as NaiveTiptapSimpleEditor from "./Naive/Editor/Tiptap/Simple";

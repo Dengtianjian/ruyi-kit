@@ -15,8 +15,12 @@
           <InlineCodeTool />
           <ToolbarDivider />
 
+          <Heading1Tool />
           <Heading2Tool />
           <Heading3Tool />
+          <Heading4Tool />
+          <Heading5Tool />
+          <Heading6Tool />
           <ParagraphTool />
           <ToolbarDivider />
 
@@ -33,7 +37,7 @@
         </Space>
       </slot>
     </Toolbar>
-    <EditorContent :editor="editor" class="simple-editor__content" :style="contentStyle" />
+    <EditorContent :editor="editor" class="simple-editor-content" :style="contentStyle" />
   </div>
 </template>
 
@@ -44,7 +48,6 @@ import StarterKit from '@tiptap/starter-kit';
 import Link from '@tiptap/extension-link';
 import Image from '@tiptap/extension-image';
 import Placeholder from '@tiptap/extension-placeholder';
-import { ImageUpload } from './Tools/imageUploadNode';
 
 /**
  * 语法高亮用的 lowlight 实例。
@@ -80,8 +83,6 @@ function createDefaultExtensions(placeholder) {
     }),
     // `allowBase64`：图片工具没配 `upload` 时靠它显示 base64 图片
     Image.configure({ inline: false, allowBase64: true }),
-    // 图片工具插入的「待上传」占位节点；少了它图片工具会提示缺扩展
-    ImageUpload,
     Placeholder.configure({ placeholder })
   ];
 }
@@ -101,8 +102,12 @@ import {
   UnderlineTool,
   StrikeTool,
   InlineCodeTool,
+  Heading1Tool,
   Heading2Tool,
   Heading3Tool,
+  Heading4Tool,
+  Heading5Tool,
+  Heading6Tool,
   ParagraphTool,
   BulletListTool,
   OrderedListTool,
@@ -126,11 +131,11 @@ const props = defineProps({
   /**
    * Tiptap 扩展列表（已 `configure` 好的实例数组）。
    *
-   * 不传就用内置默认：StarterKit + Link + 代码块高亮 + Image + ImageUpload + Placeholder。
+   * 不传就用内置默认：StarterKit + Link + 代码块高亮 + Image + Placeholder。
    * 传了就**整体替换**默认集合，所以工具依赖的扩展要一起带上：
    * - `LinkTool` 需要 link；
    * - `CodeBlockTool` 需要带 lowlight 的 codeBlock；
-   * - `ImageTool` 需要 image 和 `ImageUpload`（`Tools` 里有导出）。
+   * - `ImageTool` 需要 image（还要开 `allowBase64`，否则默认的 base64 上传没法显示）。
    *
    * 只在**创建编辑器时**读取一次：扩展不支持运行期热换，动态改这个 prop 不会重建编辑器。
    */
@@ -208,26 +213,26 @@ defineExpose({
   overflow: hidden;
 }
 
-.simple-editor__content {
+.simple-editor-content {
   padding: 12px 16px;
   outline: none;
 }
 
-.simple-editor__content:focus-within {
+.simple-editor-content:focus-within {
   border-color: #6366f1;
 }
 
 /* ProseMirror 内部节点由编辑器动态创建，拿不到 scope id，只能用 `:deep()` */
-.simple-editor__content :deep(.ProseMirror) {
+.simple-editor-content :deep(.ProseMirror) {
   outline: none;
   min-height: inherit;
 }
 
-.simple-editor__content :deep(.ProseMirror > * + *) {
+.simple-editor-content :deep(.ProseMirror > * + *) {
   margin-top: 0.75em;
 }
 
-.simple-editor__content :deep(p.is-editor-empty:first-child::before) {
+.simple-editor-content :deep(p.is-editor-empty:first-child::before) {
   color: #9ca3af;
   content: attr(data-placeholder);
   float: left;
@@ -235,114 +240,114 @@ defineExpose({
   pointer-events: none;
 }
 
-.simple-editor__content :deep(ul),
-.simple-editor__content :deep(ol) {
+.simple-editor-content :deep(ul),
+.simple-editor-content :deep(ol) {
   padding-left: 1.25em;
 }
 
-.simple-editor__content :deep(blockquote) {
+.simple-editor-content :deep(blockquote) {
   margin: 0;
   padding-left: 12px;
   border-left: 3px solid #e5e7eb;
   color: #6b7280;
 }
 
-.simple-editor__content :deep(pre) {
+.simple-editor-content :deep(pre) {
   padding: 12px;
   border-radius: 6px;
   background: #f3f4f6;
   overflow-x: auto;
 }
 
-.simple-editor__content :deep(code) {
+.simple-editor-content :deep(code) {
   padding: 1px 4px;
   border-radius: 4px;
   background: #f3f4f6;
   font-size: 0.9em;
 }
 
-.simple-editor__content :deep(pre code) {
+.simple-editor-content :deep(pre code) {
   padding: 0;
   background: none;
 }
 
 /* ---- 代码块语法高亮 ---- */
 /* 对应 lowlight 输出的 hljs-* token，浅色主题（GitHub 系） */
-.simple-editor__content :deep(.hljs-comment),
-.simple-editor__content :deep(.hljs-quote) {
+.simple-editor-content :deep(.hljs-comment),
+.simple-editor-content :deep(.hljs-quote) {
   color: #6a737d;
   font-style: italic;
 }
 
-.simple-editor__content :deep(.hljs-keyword),
-.simple-editor__content :deep(.hljs-selector-tag),
-.simple-editor__content :deep(.hljs-doctag),
-.simple-editor__content :deep(.hljs-meta .hljs-keyword) {
+.simple-editor-content :deep(.hljs-keyword),
+.simple-editor-content :deep(.hljs-selector-tag),
+.simple-editor-content :deep(.hljs-doctag),
+.simple-editor-content :deep(.hljs-meta .hljs-keyword) {
   color: #d73a49;
 }
 
-.simple-editor__content :deep(.hljs-string),
-.simple-editor__content :deep(.hljs-regexp),
-.simple-editor__content :deep(.hljs-addition),
-.simple-editor__content :deep(.hljs-attribute),
-.simple-editor__content :deep(.hljs-meta .hljs-string) {
+.simple-editor-content :deep(.hljs-string),
+.simple-editor-content :deep(.hljs-regexp),
+.simple-editor-content :deep(.hljs-addition),
+.simple-editor-content :deep(.hljs-attribute),
+.simple-editor-content :deep(.hljs-meta .hljs-string) {
   color: #032f62;
 }
 
-.simple-editor__content :deep(.hljs-number),
-.simple-editor__content :deep(.hljs-literal),
-.simple-editor__content :deep(.hljs-variable),
-.simple-editor__content :deep(.hljs-template-variable),
-.simple-editor__content :deep(.hljs-type),
-.simple-editor__content :deep(.hljs-params) {
+.simple-editor-content :deep(.hljs-number),
+.simple-editor-content :deep(.hljs-literal),
+.simple-editor-content :deep(.hljs-variable),
+.simple-editor-content :deep(.hljs-template-variable),
+.simple-editor-content :deep(.hljs-type),
+.simple-editor-content :deep(.hljs-params) {
   color: #005cc5;
 }
 
-.simple-editor__content :deep(.hljs-title),
-.simple-editor__content :deep(.hljs-section),
-.simple-editor__content :deep(.hljs-selector-id),
-.simple-editor__content :deep(.hljs-title.function_) {
+.simple-editor-content :deep(.hljs-title),
+.simple-editor-content :deep(.hljs-section),
+.simple-editor-content :deep(.hljs-selector-id),
+.simple-editor-content :deep(.hljs-title.function_) {
   color: #6f42c1;
 }
 
-.simple-editor__content :deep(.hljs-attr),
-.simple-editor__content :deep(.hljs-name),
-.simple-editor__content :deep(.hljs-selector-class),
-.simple-editor__content :deep(.hljs-selector-attr) {
+.simple-editor-content :deep(.hljs-attr),
+.simple-editor-content :deep(.hljs-name),
+.simple-editor-content :deep(.hljs-selector-class),
+.simple-editor-content :deep(.hljs-selector-attr) {
   color: #22863a;
 }
 
-.simple-editor__content :deep(.hljs-built_in),
-.simple-editor__content :deep(.hljs-symbol),
-.simple-editor__content :deep(.hljs-bullet) {
+.simple-editor-content :deep(.hljs-built_in),
+.simple-editor-content :deep(.hljs-symbol),
+.simple-editor-content :deep(.hljs-bullet) {
   color: #e36209;
 }
 
-.simple-editor__content :deep(.hljs-deletion) {
+.simple-editor-content :deep(.hljs-deletion) {
   color: #b31d28;
   background: #ffeef0;
 }
 
-.simple-editor__content :deep(.hljs-emphasis) {
+.simple-editor-content :deep(.hljs-emphasis) {
   font-style: italic;
 }
 
-.simple-editor__content :deep(.hljs-strong) {
+.simple-editor-content :deep(.hljs-strong) {
   font-weight: 600;
 }
 
-.simple-editor__content :deep(img) {
+.simple-editor-content :deep(img) {
   max-width: 100%;
   height: auto;
   border-radius: 6px;
 }
 
-.simple-editor__content :deep(a) {
+.simple-editor-content :deep(a) {
   color: #4f46e5;
   text-decoration: underline;
 }
 
-.simple-editor__content :deep(hr) {
+.simple-editor-content :deep(hr) {
   border: none;
   border-top: 1px solid #e5e7eb;
 }
